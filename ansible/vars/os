@@ -1,0 +1,6 @@
+is_ubuntu: "'{{ansible_distribution}}' == 'Ubuntu'"
+is_debian: "'{{ansible_distribution}}' == 'Debian'"
+is_centos: "'{{ansible_distribution}}' == 'CentOS'"
+is_redhat: "'{{ansible_distribution}}' == 'RedHat'"
+is_debian_family: "'{{ansible_distribution}}' in ['Ubuntu', 'Debian']"
+is_redhat_family: "'{{ansible_distribution}}' in ['CentOS', 'RedHat']"

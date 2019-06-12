@@ -1,0 +1,28 @@
+---
+- name: Obtiene la información de la mv
+  setup:
+  vars:
+    ansible_host: "{{vm_ip}}"
+
+- name: Instala network manager en debian
+  apt:
+    name: network-manager
+    update_cache: yes
+  when: is_debian_family
+
+- name: Clean configuration
+  command: sed -i "s/.*eth0.*//" /etc/network/interfaces
+
+- name: Configure eth0
+  nmcli:
+    conn_name: eth0
+    ifname: eth0
+    type: ethernet
+    ip4: "{{vm_net_ip}}/{{net_netmask}}"
+    gw4: "{{vm_net_gw}}"
+    state: present
+
+- name: reboot machine with new configuration
+  reboot:
+    reboot_timeout: 60
+

@@ -5,14 +5,15 @@ all:
         debian:
           name: "debian"
           libvirt_vm_engine: "kvm"
-          memory: 2048
-          vcpus: 2
+          memory: 1024
+          vcpus: 1
           image_name: generic.qcow2
+          net_vm_ip: "192.168.8.2"
+          net_gw_ip: "192.168.8.1"
+          net_netmask: "255.255.255.0"
+          linux_flavor: "debian"
       vars:
         libvirt_uri: "qemu:///system"
         images_path: /var/lib/libvirt/images
         network_name: demo_network
-        network_interface: "virbr2"
-        host_ip: "192.168.8.1"
-        host_netmask: "255.255.255.0"
-        linux_flavor: "debian"
+

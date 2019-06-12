@@ -1,0 +1,28 @@
+---
+- name: Main Task to Create Virtual Machines
+  hosts: vms
+  any_errors_fatal: true
+  vars_files:
+  - vars/os
+  - vars/conn
+  tasks:
+
+  - name: Create network
+    import_role:
+        name: libvirt
+        tasks_from: prepare.yml
+    delegate_to: localhost
+    when: stat_result is not defined
+
+  - name: Create virtual machine
+    import_role:
+        name: libvirt
+        tasks_from: create.yml
+    delegate_to: localhost
+
+  - name: Configure virtual machine
+    import_role:
+      name: os
+      tasks_from: setup.yml
+    vars:
+      ansible_host: "{{vm_ip}}"

@@ -8,7 +8,6 @@
   delegate_to: localhost
 
 - include_tasks: create_net.yml
-  delegate_to: localhost
   when: net_ok.failed == true
 
 - name: Active network
@@ -22,7 +21,7 @@
     path: ~/.images
     state: directory
 
-- name: Ansible check file exists example.
+- name: Ansible check if image exists.
   stat:
     path: ~/.images/{{ linux_flavor }}.box.tgz
   register: file_details
@@ -40,9 +39,4 @@
     dest: ~/.images/centos.box.tgz
     mode: '0440'
   when: file_details.stat.exists == false and linux_flavor == 'centos'
-
-- name: Unarchive the image
-  command: tar -zxf ~/.images/{{linux_flavor}}.box.tgz --exclude='./Vagrantfile' --exclude='./metadata.json' -C /var/lib/libvirt/images/
-
-- name: rename image
-  command: mv /var/lib/libvirt/images/box.img /var/lib/libvirt/images/{{name}}.qcow2
+...

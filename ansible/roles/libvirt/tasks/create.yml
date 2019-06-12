@@ -1,0 +1,42 @@
+---
+- name: Ansible check if vm image exists.
+  stat:
+    path: /var/lib/libvirt/images/{{name}}.qcow2
+  register: vm_file_details
+
+- name: Unarchive the image
+  command: tar -zxf ~/.images/{{linux_flavor}}.box.tgz --exclude='./Vagrantfile' --exclude='./metadata.json' -C /var/lib/libvirt/images/
+  when: vm_file_details.stat.exists == false
+
+- name: rename image
+  command: mv /var/lib/libvirt/images/box.img /var/lib/libvirt/images/{{name}}.qcow2
+  when: vm_file_details.stat.exists == false
+
+- name: create_vm
+  virt:
+    command: define
+    name: "{{ name }}"
+    uri: "{{ libvirt_uri }}"
+    xml: "{{ lookup('template', 'vm.xml.j2') }}"
+
+- name: start_vm
+  virt:
+    command: start
+    name: "{{ name }}"
+    uri: "{{ libvirt_uri }}"
+
+- name: getMAC
+  command: virsh domiflist --domain centos|grep vnet0|awk '{print $5}'
+  register: mac
+
+- name: list_vm
+  virt:
+    command: list
+  register: vm_list
+
+- name: getIP
+  command:  virsh net-dhcp-leases --network demo_network| grep "{{mac.output}}"|awk '{print $5}'|cut -d\/ -f 1
+  register: ip_lease
+
+- debug: var=list_vm
+- debug: var=mac
