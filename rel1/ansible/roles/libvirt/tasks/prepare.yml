@@ -1,0 +1,48 @@
+---
+- name: obtener info de la red
+  virt_net:
+    state: active
+    name: "{{ network_name }}"
+  register: net_ok
+  ignore_errors: yes
+  delegate_to: localhost
+
+- include_tasks: create_net.yml
+  delegate_to: localhost
+  when: net_ok.failed == true
+
+- name: Active network
+  virt_net:
+    state: active
+    name: "{{ network_name }}"
+  delegate_to: localhost
+
+- name: Creates directory
+  file:
+    path: ~/.images
+    state: directory
+
+- name: Ansible check file exists example.
+  stat:
+    path: ~/.images/{{ linux_flavor }}.box.tgz
+  register: file_details
+
+- name: Download Debian Image
+  get_url:
+    url: https://vagrantcloud.com/debian/boxes/stretch64/versions/9.9.0/providers/libvirt.box
+    dest: ~/.images/debian.box.tgz
+    mode: '0440'
+  when: file_details.stat.exists == false and linux_flavor == 'debian'
+
+- name: Download Centos Image
+  get_url:
+    url: http://cloud.centos.org/centos/7/vagrant/x86_64/images/CentOS-7.Libvirt.box
+    dest: ~/.images/centos.box.tgz
+    mode: '0440'
+  when: file_details.stat.exists == false and linux_flavor == 'centos'
+
+- name: Unarchive the image
+  command: tar -zxf ~/.images/{{linux_flavor}}.box.tgz --exclude='./Vagrantfile' --exclude='./metadata.json' -C /var/lib/libvirt/images/
+
+- name: rename image
+  command: mv /var/lib/libvirt/images/box.img /var/lib/libvirt/images/{{name}}.qcow2

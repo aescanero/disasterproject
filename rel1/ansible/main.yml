@@ -1,0 +1,38 @@
+- name: Main Task
+  hosts: vms
+  user: root
+  connection: local
+  gather_facts: false
+  any_errors_fatal: true
+  become_user: root
+  become: yes
+  tasks:
+
+  - name: Create network
+    import_role:
+        name: libvirt
+        tasks_from: prepare.yml
+    delegate_to: localhost
+    when: stat_result is not defined
+
+  - name: Create virtual machine
+    import_role:
+        name: libvirt
+        tasks_from: create.yml
+    delegate_to: localhost
+
+
+
+
+#  - name: Display all variables/facts known for a host
+#    debug:
+#      var: hostvars
+#      verbosity: 4
+#    delegate_to: localhost
+#  - name: Display all variables/facts known for a host
+#    debug:
+#      var: net_result
+#      verbosity: 4
+#    delegate_to: localhost
+
+

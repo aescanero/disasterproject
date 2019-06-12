@@ -1,0 +1,29 @@
+<domain type='{{ libvirt_vm_engine }}'>
+  <name>{{ name }}</name>
+  <memory unit='MB'>{{ memory }}</memory>
+  <vcpu>{{ vcpus }}</vcpu>
+  <os>
+    <type>hvm</type>
+    <bootmenu enable='no'/>
+    <boot dev='hd'/>
+  </os>
+  <features>
+    <acpi/>
+    <apic/>
+  </features>
+  <devices>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2'/>
+      <source file='{{ images_path }}/{{ name }}.qcow2'/>
+      <target dev='vda' bus='virtio'/>
+    </disk>
+    <interface type='network'>
+      <source network='{{ network_name }}'/>
+      <model type='virtio'/>
+    </interface>
+    <console type='pty'>
+      <target type='serial' port='0'/>
+    </console>
+    <memballoon model='virtio'/>
+  </devices>
+</domain>

@@ -1,0 +1,27 @@
+---
+- name: "Enable IP forwarding in sysctl"
+  sysctl:
+    name: "net.ipv4.ip_forward"
+    value: 1
+    sysctl_set: yes
+    state: present
+    reload: yes
+
+- name: destroy libvirt network
+  virt_net:
+    name: "{{ network_name }}"
+    state: absent
+    uri: "{{ libvirt_uri }}"
+
+- name: ensure libvirt network is present
+  virt_net:
+    name: "{{ network_name }}"
+    state: present
+    xml: "{{ lookup('template', 'net.xml.j2') }}"
+    uri: "{{ libvirt_uri }}"
+
+- name: find facts on libvirt networks
+  virt_net:
+    command: facts
+    uri: "{{ libvirt_uri }}"
+  register: net_result
