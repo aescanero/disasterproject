@@ -1,5 +1,5 @@
 <domain type='{{ libvirt_vm_engine }}'>
-  <name>{{ name }}</name>
+  <name>{{ inventory_hostname }}</name>
   <memory unit='MB'>{{ memory }}</memory>
   <vcpu>{{ vcpus }}</vcpu>
   <os>
@@ -18,7 +18,7 @@
   <devices>
     <disk type='file' device='disk'>
       <driver name='qemu' type='qcow2'/>
-      <source file='{{ images_path }}/{{ name }}.qcow2'/>
+      <source file='{{ images_path }}/{{ inventory_hostname }}.qcow2'/>
       <target dev='vda' bus='virtio'/>
     </disk>
     <interface type='network'>

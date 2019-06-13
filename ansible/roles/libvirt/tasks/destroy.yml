@@ -1,0 +1,16 @@
+---
+- name: create_vm
+  virt:
+    command: destroy
+    name: "{{ inventory_hostname }}"
+
+- name: create_vm
+  virt:
+    command: undefine
+    name: "{{ inventory_hostname }}"
+
+- name: remove image
+  file:
+   path: /var/lib/libvirt/images/{{ inventory_hostname }}.qcow2
+   state: absent
+...

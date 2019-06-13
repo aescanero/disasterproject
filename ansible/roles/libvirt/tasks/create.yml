@@ -1,7 +1,7 @@
 ---
 - name: Ansible check if vm image exists.
   stat:
-    path: /var/lib/libvirt/images/{{name}}.qcow2
+    path: /var/lib/libvirt/images/"{{ inventory_hostname }}".qcow2
   register: vm_file_details
 
 - name: Unarchive the image
@@ -9,34 +9,51 @@
   when: vm_file_details.stat.exists == false
 
 - name: rename image
-  command: mv /var/lib/libvirt/images/box.img /var/lib/libvirt/images/{{name}}.qcow2
+  command: mv /var/lib/libvirt/images/box.img /var/lib/libvirt/images/{{ inventory_hostname }}.qcow2
   when: vm_file_details.stat.exists == false
+
+- name: image chgrp
+  file:
+   path: /var/lib/libvirt/images
+   group: "libvirt"
+
+- name: image chgrp
+  file:
+   path: /var/lib/libvirt/images/{{ inventory_hostname }}.qcow2
+   group: "libvirt"
+   mode: '0666'
 
 - name: create_vm
   virt:
     command: define
-    name: "{{ name }}"
+    name: "{{ inventory_hostname }}"
     uri: "{{ libvirt_uri }}"
     xml: "{{ lookup('template', 'vm.xml.j2') }}"
 
 - name: start_vm
   virt:
     command: start
-    name: "{{ name }}"
+    name: "{{ inventory_hostname }}"
     uri: "{{ libvirt_uri }}"
 
 - name: getMAC
-  command: virsh domiflist --domain centos|grep vnet0|awk '{print $5}'
+  shell: virsh domiflist --domain "{{ linux_flavor }}" | grep vnet0 | awk '{print $5}'
   register: mac
 
-- name: list_vm
-  virt:
-    command: list
-  register: vm_list
 
-- name: getIP
-  command:  virsh net-dhcp-leases --network demo_network| grep "{{mac.output}}"|awk '{print $5}'|cut -d\/ -f 1
+- pause:
+    seconds: 10
+
+- virt_net:
+    name: '{{ network_name }}'
+    command: modify
+    xml: "<host mac='{{mac.stdout}}' name='{{ inventory_hostname }}' ip='{{ network }}.248'/>"
+
+- pause:
+    seconds: 10
+
+- name: getLeases
+  shell:  virsh net-dhcp-leases --network '{{ network_name }}' | grep '{{mac.stdout}}' | awk '{print $5}' | cut -d'/' -f 1
   register: ip_lease
 
-- debug: var=list_vm
-- debug: var=mac
+- debug: var=ip_lease

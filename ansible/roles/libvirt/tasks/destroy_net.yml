@@ -1,0 +1,9 @@
+---
+- virt_net:
+    command: destroy
+    name: "{{ network_name }}"
+
+- virt_net:
+    command: undefine
+    name: "{{ network_name }}"
+...

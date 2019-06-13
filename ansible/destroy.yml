@@ -11,25 +11,20 @@
   - vars/conn
   - vars/virt
   tasks:
-
-  - name: Create network
+  - name: Remove virtual machine
     import_role:
         name: libvirt
-        tasks_from: prepare.yml
-    delegate_to: localhost
-    connection: local
-    when: stat_result is not defined
-
-  - name: Create virtual machine
-    import_role:
-        name: libvirt
-        tasks_from: create.yml
+        tasks_from: destroy.yml
     connection: local
     delegate_to: localhost
 
-  - name: Configure virtual machine
+  - name: Remove Network
     import_role:
-      name: os
-      tasks_from: setup.yml
-    when: ip_lease is defined
+        name: libvirt
+        tasks_from: destroy_net.yml
+    connection: local
+    delegate_to: localhost
+
+
+
 

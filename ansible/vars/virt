@@ -1,0 +1,5 @@
+---
+libvirt_uri: "qemu:///system"
+images_path: /var/lib/libvirt/images
+libvirt_vm_engine: "kvm"
+netmask: "255.255.255.0"

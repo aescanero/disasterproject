@@ -7,6 +7,12 @@
   ignore_errors: yes
   delegate_to: localhost
 
+#- name: clean leases
+#  copy:
+#    dest: /var/lib/libvirt/dnsmasq/{{ network_name }}.status
+#    content: ''
+#    force: yes
+
 - include_tasks: create_net.yml
   when: net_ok.failed == true
 

@@ -1,28 +1,100 @@
 ---
+- debug: var=ip_lease
+
 - name: Obtiene la información de la mv
   setup:
   vars:
-    ansible_host: "{{vm_ip}}"
+    ansible_host: "{{ip_lease.stdout}}"
+    ansible_ssh_host: "{{ip_lease.stdout}}"
+
+- name: Hostname Configuration
+  command: hostnamectl set-hostname "{{ inventory_hostname }}"
+  vars:
+    ansible_host: "{{ip_lease.stdout}}"
+    ansible_ssh_host: "{{ip_lease.stdout}}"
 
 - name: Instala network manager en debian
   apt:
-    name: network-manager
+    name: "{{ packages }}"
     update_cache: yes
+  vars:
+    ansible_host: "{{ip_lease.stdout}}"
+    ansible_ssh_host: "{{ip_lease.stdout}}"
+    packages:
+    - network-manager
+    - dbus
+    - python-dbus
+    - python-gi
   when: is_debian_family
 
-- name: Clean configuration
-  command: sed -i "s/.*eth0.*//" /etc/network/interfaces
-
-- name: Configure eth0
-  nmcli:
-    conn_name: eth0
-    ifname: eth0
-    type: ethernet
-    ip4: "{{vm_net_ip}}/{{net_netmask}}"
-    gw4: "{{vm_net_gw}}"
-    state: present
+- name: Active Network Manager
+  command: sed -i "s/managed=false/managed=true/" /etc/NetworkManager/NetworkManager.conf
+  vars:
+    ansible_host: "{{ip_lease.stdout}}"
+    connection: ssh
+  when: is_debian_family
 
 - name: reboot machine with new configuration
   reboot:
     reboot_timeout: 60
+  vars:
+    ansible_host: "{{ip_lease.stdout}}"
+    connection: ssh
+    ansible_ssh_host: "{{ip_lease.stdout}}"
+
+- name: get device name
+  shell: nmcli device status | grep ethernet | awk '{print $1}'
+  ignore_errors: yes
+  vars:
+    ansible_host: "{{ip_lease.stdout}}"
+    connection: ssh
+  register: dev  
+
+- name: get connection name
+  shell: nmcli device show "{{ dev.stdout }}" | grep "GENERAL.CONNECTION:" | cut -c 41-
+  ignore_errors: yes
+  vars:
+    ansible_host: "{{ip_lease.stdout}}"
+    connection: ssh
+  register: conn
+
+- set_fact:
+    result: '{{ vm_ip }}/{{ netmask }}'
+  register: net_mask
+
+- debug: var=conn
+- debug: var=net_ipv4
+  vars:
+    net_ipv4: "{{ net_mask.ansible_facts.result | ipaddr('prefix') }}"
+
+- name: Configure interface
+  command: nmcli con mod "{{ conn.stdout }}" ipv4.addresses "{{ vm_ip }}/{{ net_mask.ansible_facts.result | ipaddr('prefix') }}"  ipv4.gateway "{{ network }}.1"  ipv4.method manual
+  vars:
+    ansible_host: "{{ip_lease.stdout}}"
+    ansible_ssh_host: "{{ip_lease.stdout}}"
+    connection: ssh
+    gw4: "{{ network }}.1"
+
+# NMCLI Ansible module is broken!
+#- name: Configure eth0
+#  nmcli:
+#    conn_name: eth0
+#    ifname: eth0
+#    type: ethernet
+#    ip4: "{{ net_mask | ipaddr('net') }}"
+#    gw4: "{{ network }}.1"
+#    state: present
+#  vars:
+#    net_mask: "{{ vm_ip }}/{{ netmask }}"
+#    ansible_host: "{{ip_lease.stdout}}"
+#    ansible_ssh_host: "{{ip_lease.stdout}}"
+
+- name: reboot machine with new configuration
+  reboot:
+    reboot_timeout: 60
+  vars:
+    connection: ssh
+    ansible_host: "{{ip_lease.stdout}}"
+    ansible_ssh_host: "{{ip_lease.stdout}}"
+
 
