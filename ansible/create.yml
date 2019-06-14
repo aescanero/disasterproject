@@ -31,5 +31,4 @@
     import_role:
       name: os
       tasks_from: setup.yml
-    when: ip_lease is defined
-
+...

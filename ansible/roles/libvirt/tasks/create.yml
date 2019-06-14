@@ -30,30 +30,21 @@
     uri: "{{ libvirt_uri }}"
     xml: "{{ lookup('template', 'vm.xml.j2') }}"
 
+- name: getMAC
+  shell: virsh domiflist --domain "{{ inventory_hostname }}" | grep "{{ network_name }}" | awk '{print $5}'
+  register: mac
+
+- virt_net:
+    name: '{{ network_name }}'
+    command: modify
+    xml: "<host mac='{{mac.stdout}}' name='{{ inventory_hostname }}' ip='{{ vm_ip }}'/>"
+
 - name: start_vm
   virt:
     command: start
     name: "{{ inventory_hostname }}"
     uri: "{{ libvirt_uri }}"
 
-- name: getMAC
-  shell: virsh domiflist --domain "{{ linux_flavor }}" | grep vnet0 | awk '{print $5}'
-  register: mac
-
-
 - pause:
-    seconds: 10
-
-- virt_net:
-    name: '{{ network_name }}'
-    command: modify
-    xml: "<host mac='{{mac.stdout}}' name='{{ inventory_hostname }}' ip='{{ network }}.248'/>"
-
-- pause:
-    seconds: 10
-
-- name: getLeases
-  shell:  virsh net-dhcp-leases --network '{{ network_name }}' | grep '{{mac.stdout}}' | awk '{print $5}' | cut -d'/' -f 1
-  register: ip_lease
-
-- debug: var=ip_lease
+    seconds: 20
+...
