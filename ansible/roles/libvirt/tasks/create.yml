@@ -8,20 +8,19 @@
   command: tar -zxf ~/.images/{{linux_flavor}}.box.tgz --exclude='./Vagrantfile' --exclude='./metadata.json' -C /var/lib/libvirt/images/
   when: vm_file_details.stat.exists == false
 
-- name: rename image
-  command: mv /var/lib/libvirt/images/box.img /var/lib/libvirt/images/{{ inventory_hostname }}.qcow2
+- name: create image
+  copy:
+    src: /var/lib/libvirt/images/box.img
+    dest: /var/lib/libvirt/images/{{ inventory_hostname }}.qcow2
+    group: "libvirt"
+    mode: '0666'
   when: vm_file_details.stat.exists == false
+  notify: clean box
 
 - name: image chgrp
   file:
    path: /var/lib/libvirt/images
    group: "libvirt"
-
-- name: image chgrp
-  file:
-   path: /var/lib/libvirt/images/{{ inventory_hostname }}.qcow2
-   group: "libvirt"
-   mode: '0666'
 
 - name: create_vm
   virt:

@@ -7,7 +7,6 @@
   user: root
   gather_facts: false
   vars_files:
-  - vars/os
   - vars/conn
   - vars/virt
   tasks:

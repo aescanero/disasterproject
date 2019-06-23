@@ -1,0 +1,106 @@
+---
+- name: Update repositories cache and install dirmngr and curl packages
+  apt:
+    name: "{{ packages }}"
+    update_cache: yes
+  vars:
+    packages:
+    - ebtables
+    - ethtool 
+    - software-properties-common
+    - dirmngr
+    - curl
+    - socat
+    - libseccomp2
+  when: ansible_os_family == "Debian"
+
+- name: Install last CNI version
+  shell: curl -LSs https://github.com/containernetworking/plugins/releases/download/v0.7.5/cni-plugins-amd64-v0.7.5.tgz |tar --no-overwrite-dir -C / -xz
+  args:
+    warn: no
+
+- name: install the latest version of podman and buildah
+  yum:
+    name: "{{ packages }}"
+    state: latest
+  vars:
+    packages:
+    - podman
+    - buildah
+  when: ansible_os_family == "Redhat" and ansible_distribution_major_version == 7
+
+- name: install the latest version of container-tools
+  yum:
+    name: container-tools
+    state: latest
+  when: ansible_os_family == "Redhat" and ansible_distribution_major_version == 8
+
+- name: Add podman key repository
+  apt_key:
+    keyserver: keyserver.ubuntu.com
+    id: 8BECF1637AD8C79D
+  when: ansible_os_family == "Debian"
+
+- name: Add podman repository
+  apt_repository:
+    repo: deb http://ppa.launchpad.net/projectatomic/ppa/ubuntu bionic main 
+    state: present
+    validate_certs: no
+  when: ansible_os_family == "Debian"
+
+- name: Update repositories cache and install podman package
+  apt:
+    name: "{{ packages }}"
+    update_cache: yes
+  vars:
+    packages:
+    - podman
+    - buildah
+  when: ansible_os_family == "Debian"
+
+- name: Registry configuration
+  copy:
+    dest: /etc/containers/registries.conf
+    content: |
+      [registries.search]
+      registries = ["docker.io"]
+      
+      # Registries that do not use TLS when pulling images or uses self-signed
+      # certificates.
+      [registries.insecure]
+      registries = []
+      
+      [registries.block]
+      registries = []
+
+- name: CNI configuration
+  copy:
+    dest: /etc/cni/net.d/87-podman-bridge.conflist
+    content: |
+      {
+        "cniVersion": "0.3.0",
+        "name": "podman",
+        "plugins": [
+          {
+            "type": "bridge",
+            "bridge": "cni0",
+            "isGateway": true,
+            "ipMasq": true,
+            "ipam": {
+              "type": "host-local",
+              "subnet": "10.88.0.0/16",
+              "routes": [
+                { "dst": "0.0.0.0/0" }
+              ]
+            }
+          },
+          {
+            "type": "portmap",
+            "capabilities": {
+              "portMappings": true
+            }
+          }
+        ]
+      }
+
+...

@@ -7,7 +7,6 @@
   user: root
   gather_facts: false
   vars_files:
-  - vars/os
   - vars/conn
   - vars/virt
   tasks:
@@ -31,4 +30,13 @@
     import_role:
       name: os
       tasks_from: setup.yml
+
+  - name: Include Container Engine
+    include_role:
+      name: "{{container_engine}}"
+      tasks_from: main.yml
+    vars:
+      ansible_host: "{{ vm_ip }}"
+    when: container_engine is defined
+
 ...

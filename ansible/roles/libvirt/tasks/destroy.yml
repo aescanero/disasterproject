@@ -1,10 +1,11 @@
 ---
-- name: create_vm
+- name: stop vm
   virt:
     command: destroy
     name: "{{ inventory_hostname }}"
+  ignore_errors: yes
 
-- name: create_vm
+- name: remove vm
   virt:
     command: undefine
     name: "{{ inventory_hostname }}"

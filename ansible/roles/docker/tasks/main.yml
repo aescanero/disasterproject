@@ -1,0 +1,21 @@
+---
+- name: Update repositories cache and install dirmngr and curl packages
+  apt:
+    name: "{{ packages }}"
+    update_cache: yes
+  vars:
+    packages:
+    - ebtables
+    - ethtool 
+    - software-properties-common
+    - dirmngr
+    - curl
+    - socat
+    - libseccomp2
+  when: ansible_os_family == "Debian"
+
+- name: Install last Docker version
+  shell: curl -sSL https://get.docker.com/ | sh
+  args:
+    warn: no
+...
