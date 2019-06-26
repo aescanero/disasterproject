@@ -1,5 +1,9 @@
 <network>
   <name>{{ network_name }}</name>
+  <domain name="{{ network_name }}.local"/>
+  <dns>
+    <forwarder addr="8.8.8.8"/>
+  </dns>
   <forward mode='nat'>
     <nat>
       <port start='1' end='65535'/>

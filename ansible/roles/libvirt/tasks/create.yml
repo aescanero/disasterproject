@@ -36,7 +36,7 @@
 - virt_net:
     name: '{{ network_name }}'
     command: modify
-    xml: "<host mac='{{mac.stdout}}' name='{{ inventory_hostname }}' ip='{{ vm_ip }}'/>"
+    xml: "<host mac='{{mac.stdout}}' name='{{ inventory_hostname }}.{{ network_name }}.local' ip='{{ vm_ip }}'/>"
 
 - name: start_vm
   virt:
