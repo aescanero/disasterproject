@@ -1,0 +1,235 @@
+---
+- name: Add kernel modules
+  modprobe:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - overlay
+    - br_netfilter
+
+- sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    sysctl_set: yes
+    state: present
+
+- sysctl:
+    name: net.bridge.bridge-nf-call-iptables
+    value: "1"
+    sysctl_set: yes
+    state: present
+
+- name: Update repositories cache and install dirmngr and curl packages
+  apt:
+    name: "{{ packages }}"
+    update_cache: yes
+  vars:
+    packages:
+    - ebtables
+    - ethtool 
+    - software-properties-common
+    - dirmngr
+    - curl
+    - socat
+    - libseccomp2
+    - conntrack
+    - ipvsadm
+  when: ansible_os_family == "Debian"
+
+- name: Install last CNI version
+  shell: curl -LSs https://storage.googleapis.com/cri-containerd-release/cri-containerd-cni-1.2.7.linux-amd64.tar.gz |tar --no-overwrite-dir -C / -xz
+  args:
+    warn: no
+
+- name: Obtain the last kubernetes version
+  shell: curl -sSL https://dl.k8s.io/release/stable.txt
+  register: kubernetes_version
+  when: kubernetes_version is not defined
+  run_once: true
+  args:
+    warn: no
+
+- name: install Kubelet and kubectl
+  get_url:
+    url: https://storage.googleapis.com/kubernetes-release/release/{{ kubernetes_version.stdout }}/bin/linux/amd64/{{ item }}
+    dest: /usr/bin/{{ item }}
+    mode: '0755'
+    username: root
+    group: root
+  with_items:
+    - kubelet
+    - kubectl
+
+- name: obtiene el nombre del master
+  command: echo "{{ inventory_hostname }}"
+  register: master_name
+  run_once: true
+  when: master_name is not defined
+
+- debug: var=master_name
+
+- name: install Kubeadm in master
+  get_url:
+    url: https://storage.googleapis.com/kubernetes-release/release/{{ kubernetes_version.stdout }}/bin/linux/amd64/kubeadm
+    dest: /usr/bin/kubeadm
+    mode: '0755'
+    username: root
+    group: root
+  when: master_name is defined and master_name.stdout == inventory_hostname
+
+- name: Create directory /etc/systemd/system/kubelet.service.d
+  file:
+    path: /etc/systemd/system/kubelet.service.d
+    state: directory
+    mode: '0755'
+
+- name: install /etc/systemd/system/kubelet.service
+  copy:
+    dest: /etc/systemd/system/kubelet.service
+    content: |
+      [Unit]
+      Description=kubelet: The Kubernetes Node Agent
+      Documentation=http://kubernetes.io/docs/
+      
+      [Service]
+      ExecStart=/usr/bin/kubelet
+      Restart=always
+      StartLimitInterval=0
+      RestartSec=10
+      
+      [Install]
+      WantedBy=multi-user.target
+
+- name: install /etc/systemd/system/kubelet.service.d/0-containerd.conf
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  copy:
+    dest: /etc/systemd/system/kubelet.service.d/0-containerd.conf
+    content: |
+      [Service]
+      Environment="KUBELET_EXTRA_ARGS=--container-runtime=remote --runtime-request-timeout=15m --container-runtime-endpoint=unix:///run/containerd/containerd.sock"
+
+- name: install /etc/systemd/system/kubelet.service.d/0-containerd.conf
+  when: master_name is defined and master_name.stdout != inventory_hostname
+  copy:
+    dest: /etc/systemd/system/kubelet.service.d/0-containerd.conf
+    content: |
+      [Service]
+        EnvironmentFile=-/etc/default/kubelet
+        ExecStart=
+        ExecStart=/usr/bin/kubelet \$KUBELET_KUBECONFIG_ARGS \$KUBELET_CONFIG_ARGS \$KUBELET_EXTRA_ARGS
+
+- name: install /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  copy:
+    dest: /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+    content: |
+      # Note: This dropin only works with kubeadm and kubelet v1.11+
+      [Service]
+      Environment="KUBELET_KUBECONFIG_ARGS=--bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubelet.conf --kubeconfig=/etc/kubernetes/kubelet.conf"
+      Environment="KUBELET_CONFIG_ARGS=--config=/var/lib/kubelet/config.yaml"
+      # This is a file that "kubeadm init" and "kubeadm join" generates at runtime, populating the KUBELET_KUBEADM_ARGS variable dynamically
+      EnvironmentFile=-/var/lib/kubelet/kubeadm-flags.env
+      # This is a file that the user can use for overrides of the kubelet args as a last resort. Preferably, the user should use
+      # the .NodeRegistration.KubeletExtraArgs object in the configuration files instead. KUBELET_EXTRA_ARGS should be sourced from this file.
+      EnvironmentFile=-/etc/default/kubelet
+      ExecStart=
+      ExecStart=/usr/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_EXTRA_ARGS
+
+- name: install /etc/default/kubelet
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  copy:
+    dest: /etc/default/kubelet
+    content: |
+      KUBELET_EXTRA_ARGS='--network-plugin=cni --container-runtime=remote --runtime-request-timeout=15m --container-runtime-endpoint=unix:///run/containerd/containerd.sock --node-ip={{ vm_ip }}'
+
+- name: install /etc/default/kubelet
+  when: master_name is defined and master_name.stdout != inventory_hostname
+  copy:
+    dest: /etc/default/kubelet
+    content: |
+      KUBELET_EXTRA_ARGS='--network-plugin=cni --container-runtime=remote --runtime-request-timeout=15m --container-runtime-endpoint=unix:///run/containerd/containerd.sock'
+      KUBELET_KUBECONFIG_ARGS='--bootstrap-kubeconfig="/var/lib/kubelet/bootstrap-kubeconfig" --kubeconfig="/var/lib/kubelet/kubeconfig"'
+      KUBELET_CONFIG_ARGS='--node-ip={{ vm_ip }}'
+
+- name: enable and start containerd service
+  systemd:
+    name: containerd
+    daemon_reload: yes
+    enabled: yes
+    masked: no
+    state: started
+
+- name: enable and start kubelet service
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  systemd:
+    name: kubelet
+    daemon_reload: yes
+    enabled: yes
+    masked: no
+    state: started
+
+- name: execute kubeadm
+  shell: kubeadm init --apiserver-advertise-address {{ vm_ip }} --pod-network-cidr=10.244.0.0/16 --cri-socket /run/containerd/containerd.sock  | grep "kubeadm join"|grep token
+  register: secret_token
+  when: master_name is defined and master_name.stdout == inventory_hostname
+
+- name: Install network drivers
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  shell: "{{ item }}"
+  with_items:
+    - mkdir  $HOME/.kube
+    - cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+    - kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+
+- pause:
+    seconds: 20
+
+- name: Create Service Account initnode
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  shell: "{{ item }}"
+  with_items:
+    - kubectl create serviceaccount initnode --namespace=kube-system --dry-run -o yaml >>/tmp/initsecret.yaml
+    - echo "---" >>/tmp/initsecret.yaml
+    - kubectl create clusterrolebinding initauth --serviceaccount=kube-system:initnode --clusterrole=system:node-bootstrapper -n kube-system --dry-run -o yaml >>/tmp/initsecret.yaml
+    - kubectl apply -f /tmp/initsecret.yaml
+
+- name: Get secret initnode
+  shell: kubectl get serviceaccount -n kube-system initnode -o=jsonpath="{.secrets[0].name}"
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  register: initnode_secret
+
+- name: Get token initnode
+  shell: kubectl get secrets $SECRET -n kube-system -o=jsonpath="{.data.token}"|base64 -d
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  register: initnode_token
+
+- name: Create bootstrap-kubeconfig to add new nodes
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  shell: "{{ item }}"
+  with_items:
+    - kubectl config set-cluster kubernetes --kubeconfig=bootstrap-kubeconfig --certificate-authority=/etc/kubernetes/pki/ca.crt --embed-certs --server='https://{{ vm_ip }}:6443'
+    - kubectl config set-credentials initnode --kubeconfig=bootstrap-kubeconfig --token={{initnode_token.stdout}}
+    - kubectl config set-context initnode@kubernetes --cluster=kubernetes --user=initnode --kubeconfig=bootstrap-kubeconfig
+    - kubectl config use-context initnode@kubernetes --kubeconfig=bootstrap-kubeconfig
+
+- name: Load file into variable
+  when: master_name is defined and master_name.stdout != inventory_hostname
+  slurp:
+    src: $HOME/bootstrap-kubeconfig
+  register: bootstrap-kubeconfig  
+
+- copy: 
+    content: "{{ bootstrap-kubeconfig.content }}"
+    dest: /var/lib/kubelet/bootstrap-kubeconfig
+  when: master_name is defined and master_name.stdout != inventory_hostname
+
+- name: enable and start kubelet service
+  when: master_name is defined and master_name.stdout != inventory_hostname
+  systemd:
+    name: kubelet
+    daemon_reload: yes
+    enabled: yes
+    masked: no
+    state: started
+
+...

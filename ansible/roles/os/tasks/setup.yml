@@ -3,6 +3,7 @@
   setup:
   vars:
     ansible_host: "{{ vm_ip }}"
+    warn: no
 
 - name: Hostname Configuration
   command: hostnamectl set-hostname "{{ inventory_hostname }}"

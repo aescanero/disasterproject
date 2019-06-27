@@ -2,10 +2,12 @@
 - virt_net:
     command: destroy
     name: "{{ network_name }}"
+  run_once: true
   ignore_errors: yes
 
 - virt_net:
     command: undefine
     name: "{{ network_name }}"
+  run_once: true
   ignore_errors: yes
 ...
