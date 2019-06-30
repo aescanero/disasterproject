@@ -66,9 +66,8 @@
   run_once: true
   when: master_name is not defined
 
-- debug: var=master_name
-
 - name: install Kubeadm in master
+  run_once: true
   get_url:
     url: https://storage.googleapis.com/kubernetes-release/release/{{ kubernetes_version.stdout }}/bin/linux/amd64/kubeadm
     dest: /usr/bin/kubeadm
@@ -102,11 +101,12 @@
 
 - name: install /etc/systemd/system/kubelet.service.d/0-containerd.conf
   when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
   copy:
     dest: /etc/systemd/system/kubelet.service.d/0-containerd.conf
     content: |
       [Service]
-      Environment="KUBELET_EXTRA_ARGS=--container-runtime=remote --runtime-request-timeout=15m --container-runtime-endpoint=unix:///run/containerd/containerd.sock"
+      Environment="KUBELET_EXTRA_ARGS=--container-runtime=remote --container-runtime-endpoint=unix:///run/containerd/containerd.sock"
 
 - name: install /etc/systemd/system/kubelet.service.d/0-containerd.conf
   when: master_name is defined and master_name.stdout != inventory_hostname
@@ -116,10 +116,11 @@
       [Service]
         EnvironmentFile=-/etc/default/kubelet
         ExecStart=
-        ExecStart=/usr/bin/kubelet \$KUBELET_KUBECONFIG_ARGS \$KUBELET_CONFIG_ARGS \$KUBELET_EXTRA_ARGS
+        ExecStart=/usr/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_EXTRA_ARGS
 
 - name: install /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
   when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
   copy:
     dest: /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
     content: |
@@ -137,18 +138,19 @@
 
 - name: install /etc/default/kubelet
   when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
   copy:
     dest: /etc/default/kubelet
     content: |
-      KUBELET_EXTRA_ARGS='--network-plugin=cni --container-runtime=remote --runtime-request-timeout=15m --container-runtime-endpoint=unix:///run/containerd/containerd.sock --node-ip={{ vm_ip }}'
+      KUBELET_EXTRA_ARGS='--network-plugin=cni --container-runtime=remote --container-runtime-endpoint=unix:///run/containerd/containerd.sock --node-ip={{ vm_ip }}'
 
 - name: install /etc/default/kubelet
   when: master_name is defined and master_name.stdout != inventory_hostname
   copy:
     dest: /etc/default/kubelet
     content: |
-      KUBELET_EXTRA_ARGS='--network-plugin=cni --container-runtime=remote --runtime-request-timeout=15m --container-runtime-endpoint=unix:///run/containerd/containerd.sock'
-      KUBELET_KUBECONFIG_ARGS='--bootstrap-kubeconfig="/var/lib/kubelet/bootstrap-kubeconfig" --kubeconfig="/var/lib/kubelet/kubeconfig"'
+      KUBELET_EXTRA_ARGS='--network-plugin=cni --container-runtime=remote --container-runtime-endpoint=unix:///run/containerd/containerd.sock'
+      KUBELET_KUBECONFIG_ARGS='--bootstrap-kubeconfig=/var/lib/kubelet/bootstrap-kubeconfig --kubeconfig=/var/lib/kubelet/kubeconfig'
       KUBELET_CONFIG_ARGS='--node-ip={{ vm_ip }}'
 
 - name: enable and start containerd service
@@ -161,6 +163,7 @@
 
 - name: enable and start kubelet service
   when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
   systemd:
     name: kubelet
     daemon_reload: yes
@@ -175,14 +178,66 @@
 
 - name: Install network drivers
   when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
   shell: "{{ item }}"
   with_items:
-    - mkdir  $HOME/.kube
+    - mkdir  {{ ansible_env.HOME }}/.kube
     - cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
     - kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+    - kubectl apply -f "https://raw.githubusercontent.com/danderson/metallb/master/manifests/metallb.yaml"
 
-- pause:
+- name: Wait to raise network
+  pause:
     seconds: 20
+
+- name: Define a default external pool for Kubernetes
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  copy:
+    dest: "{{ ansible_env.HOME }}/pool.yml"
+    content: |
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        namespace: metallb-system
+        name: config
+      data:
+        config: |
+          address-pools:
+          - name: my-ip-space
+            protocol: layer2
+            addresses:
+            - 192.168.8.240/28
+
+- name: Define a service for Dashboard
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  copy:
+    dest: "{{ ansible_env.HOME }}/service.yml"
+    content: |
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: k8dashlb
+        namespace: kube-system
+      spec:
+        ports:
+        - name: http
+          port: 80
+          protocol: TCP
+          targetPort: 4654
+        selector:
+          k8s-app: k8dash
+        type: LoadBalancer
+
+- name: Configure network pool and Dashboard
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  shell: "{{ item }}"
+  with_items:
+    - kubectl apply -f {{ ansible_env.HOME }}/pool.yml
+    - kubectl apply -f "https://raw.githubusercontent.com/herbrandson/k8dash/master/kubernetes-k8dash.yaml"
+    - kubectl apply -f {{ ansible_env.HOME }}/service.yml
 
 - name: Create Service Account initnode
   when: master_name is defined and master_name.stdout == inventory_hostname
@@ -196,30 +251,45 @@
 - name: Get secret initnode
   shell: kubectl get serviceaccount -n kube-system initnode -o=jsonpath="{.secrets[0].name}"
   when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
   register: initnode_secret
 
 - name: Get token initnode
-  shell: kubectl get secrets $SECRET -n kube-system -o=jsonpath="{.data.token}"|base64 -d
+  shell: kubectl get secrets "{{ initnode_secret.stdout }}" -n kube-system -o=jsonpath="{.data.token}"|base64 -d
   when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
   register: initnode_token
 
 - name: Create bootstrap-kubeconfig to add new nodes
   when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
   shell: "{{ item }}"
   with_items:
-    - kubectl config set-cluster kubernetes --kubeconfig=bootstrap-kubeconfig --certificate-authority=/etc/kubernetes/pki/ca.crt --embed-certs --server='https://{{ vm_ip }}:6443'
-    - kubectl config set-credentials initnode --kubeconfig=bootstrap-kubeconfig --token={{initnode_token.stdout}}
-    - kubectl config set-context initnode@kubernetes --cluster=kubernetes --user=initnode --kubeconfig=bootstrap-kubeconfig
-    - kubectl config use-context initnode@kubernetes --kubeconfig=bootstrap-kubeconfig
+    - kubectl config set-cluster kubernetes --kubeconfig={{ local_home }}/bootstrap-kubeconfig --certificate-authority=/etc/kubernetes/pki/ca.crt --embed-certs --server='https://{{ vm_ip }}:6443'
+    - kubectl config set-credentials initnode --kubeconfig={{ local_home }}/bootstrap-kubeconfig --token={{initnode_token.stdout}}
+    - kubectl config set-context initnode@kubernetes --cluster=kubernetes --user=initnode --kubeconfig={{ local_home }}/bootstrap-kubeconfig
+    - kubectl config use-context initnode@kubernetes --kubeconfig={{ local_home }}/bootstrap-kubeconfig
+  vars:
+    local_home: "{{ ansible_env.HOME }}"
 
 - name: Load file into variable
-  when: master_name is defined and master_name.stdout != inventory_hostname
+  when: master_name is defined and master_name.stdout == inventory_hostname
   slurp:
-    src: $HOME/bootstrap-kubeconfig
-  register: bootstrap-kubeconfig  
+    src: "{{ local_home }}/bootstrap-kubeconfig"
+  register: bootstrap
+  run_once: true
+  vars:
+    local_home: "{{ ansible_env.HOME }}"
+
+- name: Create directory /var/lib/kubelet
+  when: master_name is defined and master_name.stdout != inventory_hostname
+  file:
+    path: /var/lib/kubelet
+    state: directory
+    mode: '0750'
 
 - copy: 
-    content: "{{ bootstrap-kubeconfig.content }}"
+    content: "{{ bootstrap.content |  b64decode }}"
     dest: /var/lib/kubelet/bootstrap-kubeconfig
   when: master_name is defined and master_name.stdout != inventory_hostname
 
@@ -232,4 +302,12 @@
     masked: no
     state: started
 
+- name: Approve all certificates to activate all the nodes
+  shell: kubectl get certificatesigningrequests.certificates.k8s.io |grep ^node-csr|awk '{print $1}'|while read l;do kubectl certificate approve $l;done
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+
+- name: Wait to raise kubernetes nodes
+  pause:
+    seconds: 60
 ...
