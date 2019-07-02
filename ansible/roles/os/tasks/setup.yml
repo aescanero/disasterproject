@@ -1,5 +1,5 @@
 ---
-- name: Obtiene la información de la mv
+- name: Obtain vm information
   setup:
   vars:
     ansible_host: "{{ vm_ip }}"

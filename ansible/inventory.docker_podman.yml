@@ -2,11 +2,18 @@ all:
   children:
     vms:
       hosts:
-        vm1:
+        docker:
           memory: 1024
           vcpus: 1
           vm_ip: "192.168.8.2"
           linux_flavor: "debian"
+          container_engine: "docker"
+        podman:
+          memory: 1024
+          vcpus: 1
+          vm_ip: "192.168.8.3"
+          linux_flavor: "debian"
+          container_engine: "podman"
       vars:
         network_name: demo_network
         network: "192.168.8"

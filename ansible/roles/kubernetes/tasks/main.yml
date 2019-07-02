@@ -36,6 +36,21 @@
     - ipvsadm
   when: ansible_os_family == "Debian"
 
+- name: Update repositories cache and install kubernetes dependences
+  yum:
+    name: "{{ packages }}"
+    state: latest
+  vars:
+    packages:
+    - ebtables
+    - ethtool 
+    - curl
+    - socat
+    - libseccomp
+    - conntrack-tools
+    - ipvsadm
+  when: ansible_os_family == "Redhat"
+
 - name: Install last CNI version
   shell: curl -LSs https://storage.googleapis.com/cri-containerd-release/cri-containerd-cni-1.2.7.linux-amd64.tar.gz |tar --no-overwrite-dir -C / -xz
   args:
@@ -272,6 +287,14 @@
   vars:
     local_home: "{{ ansible_env.HOME }}"
 
+- name: Create k8dash sa
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  shell: "{{ item }}"
+  with_items:
+    - kubectl create serviceaccount k8dash-sa
+    - kubectl create clusterrolebinding k8dash-sa --clusterrole=cluster-admin --serviceaccount=default:k8dash-sa
+
 - name: Load file into variable
   when: master_name is defined and master_name.stdout == inventory_hostname
   slurp:
@@ -302,6 +325,10 @@
     masked: no
     state: started
 
+- name: Wait to activate kubernetes nodes
+  pause:
+    seconds: 20
+
 - name: Approve all certificates to activate all the nodes
   shell: kubectl get certificatesigningrequests.certificates.k8s.io |grep ^node-csr|awk '{print $1}'|while read l;do kubectl certificate approve $l;done
   when: master_name is defined and master_name.stdout == inventory_hostname
@@ -309,5 +336,24 @@
 
 - name: Wait to raise kubernetes nodes
   pause:
-    seconds: 60
+    seconds: 40
+
+- name: Obtain dashboard IP
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  shell: kubectl get service -n kube-system k8dashlb -o jsonpath="{.status.loadBalancer.ingress[].ip}"
+  register: k8dash_ip
+
+- name: Obtain dashboard Token
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  shell: kubectl get secret `kubectl get secret|grep ^k8dash|awk '{print $1}'` -o jsonpath="{.data.token}"|base64 -d
+  register: k8dash_token
+
+- name: display post install message
+  debug:
+    msg: |
+      Things left to do:
+        - Access to https://{{k8dash_ip.stdout}}
+        - Use the next token to access dashboard: {{k8dash_token.stdout}}
 ...

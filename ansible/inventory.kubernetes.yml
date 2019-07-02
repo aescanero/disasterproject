@@ -1,0 +1,20 @@
+all:
+  children:
+    vms:
+      hosts:
+        kubernetes-master:
+          memory: 2048
+          vcpus: 2
+          vm_ip: "192.168.8.2"
+          linux_flavor: "debian"
+          container_engine: "kubernetes"
+        kubernetes-node:
+          memory: 1024
+          vcpus: 1
+          vm_ip: "192.168.8.3"
+          linux_flavor: "debian"
+          container_engine: "kubernetes"
+      vars:
+        network_name: demo_network
+        network: "192.168.8"
+

@@ -1,6 +1,7 @@
 ---
 - name: Main Task to Create Virtual Machines
   hosts: vms
+  order: sorted
   any_errors_fatal: true
   become_user: root
   become: yes

@@ -1,4 +1,49 @@
 ---
+- name: Obtain host information
+  setup:
+  vars:
+    warn: no
+  run_once: true
+
+- sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    sysctl_set: yes
+    state: present
+  run_once: true
+
+- name: Update repositories cache and install libvirt
+  apt:
+    name: "{{ packages }}"
+    update_cache: yes
+  vars:
+    packages:
+    - libvirt-daemon-system
+    - python-libvirt
+    - python-lxml
+  when: ansible_os_family == "Debian"
+  run_once: true
+
+- name: Update repositories cache and install libvirt
+  yum:
+    name: "{{ packages }}"
+    state: latest
+  vars:
+    packages:
+    - libvirt-daemon-kvm
+    - python-lxml
+  when: ansible_os_family == "Redhat"
+  run_once: true
+
+- name: enable and start libvirtd service
+  systemd:
+    name: libvirtd
+    daemon_reload: yes
+    enabled: yes
+    masked: no
+    state: started
+  run_once: true
+
 - name: Ansible check if vm image exists.
   stat:
     path: /var/lib/libvirt/images/"{{ inventory_hostname }}".qcow2
