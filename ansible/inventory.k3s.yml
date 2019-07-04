@@ -3,14 +3,14 @@ all:
     vms:
       hosts:
         k3s-master:
-          memory: 2048
+          memory: 3072
           vcpus: 2
           vm_ip: "192.168.8.10"
           linux_flavor: "debian"
           container_engine: "k3s"
         k3s-node:
-          memory: 1024
-          vcpus: 1
+          memory: 2048
+          vcpus: 2
           vm_ip: "192.168.8.11"
           linux_flavor: "debian"
           container_engine: "k3s"

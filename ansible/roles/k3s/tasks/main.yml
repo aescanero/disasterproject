@@ -63,8 +63,6 @@
   run_once: true
   when: master_name is not defined
 
-- debug: var=master_name
-
 - name: install /etc/systemd/system/k3smaster.service on master
   when: master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
@@ -104,12 +102,18 @@
   register: token
   run_once: true
 
+- name: Creates directory
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  file:
+    path: ~/.kube
+    state: directory
+
 - name: Configure config for k3s kubectl
   when: master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
   shell: "{{ item }}"
   with_items:
-    - mkdir  {{ ansible_env.HOME }}/.kube
     - cp -i /etc/rancher/k3s/k3s.yaml $HOME/.kube/config
     - k3s kubectl apply -f "https://raw.githubusercontent.com/danderson/metallb/master/manifests/metallb.yaml"
 
@@ -179,7 +183,7 @@
       Description=k3s
       
       [Service]
-      ExecStart=/usr/bin/k3s agent --server https://{{ master_name.stdout }}:6443 --token "{{ token.content |  b64decode | replace('\n', '') }}"
+      ExecStart=/usr/bin/k3s agent --server https://{{ master_name.stdout }}:6443 --token {{ token.content |  b64decode }}
       Restart=always
       StartLimitInterval=0
       RestartSec=10
@@ -203,14 +207,22 @@
 - name: Obtain dashboard IP
   when: master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
-  shell: kubectl get service -n kube-system k8dashlb -o jsonpath="{.status.loadBalancer.ingress[].ip}"
+  shell: k3s kubectl get service -n kube-system k8dashlb -o jsonpath="{.status.loadBalancer.ingress[].ip}"
   register: k8dash_ip
 
 - name: Obtain dashboard Token
   when: master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
-  shell: kubectl get secret `kubectl get secret|grep ^k8dash|awk '{print $1}'` -o jsonpath="{.data.token}"|base64 -d
+  shell: k3s kubectl get secret `k3s kubectl get secret|grep ^k8dash|awk '{print $1}'` -o jsonpath="{.data.token}"|base64 -d
   register: k8dash_token
+
+- name: Deploy RIO
+  when: master_name is defined and master_name.stdout == inventory_hostname and rio is defined and rio == true
+  run_once: true
+  shell: "{{ item }}"
+  with_items:
+    - curl -sfL https://get.rio.io | sh -
+    - rio install
 
 - name: display post install message
   debug:

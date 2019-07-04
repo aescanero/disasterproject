@@ -1,5 +1,6 @@
 ---
 - name: obtener info de la red
+  run_once: true
   virt_net:
     state: active
     name: "{{ network_name }}"
@@ -7,32 +8,31 @@
   ignore_errors: yes
   delegate_to: localhost
 
-#- name: clean leases
-#  copy:
-#    dest: /var/lib/libvirt/dnsmasq/{{ network_name }}.status
-#    content: ''
-#    force: yes
-
 - include_tasks: create_net.yml
+  run_once: true
   when: net_ok.failed == true
 
 - name: Active network
+  run_once: true
   virt_net:
     state: active
     name: "{{ network_name }}"
   delegate_to: localhost
 
 - name: Creates directory
+  run_once: true
   file:
     path: ~/.images
     state: directory
 
 - name: Ansible check if image exists.
+  run_once: true
   stat:
     path: ~/.images/{{ linux_flavor }}.box.tgz
   register: file_details
 
 - name: Download Debian Image
+  run_once: true
   get_url:
     url: https://vagrantcloud.com/debian/boxes/stretch64/versions/9.9.0/providers/libvirt.box
     dest: ~/.images/debian.box.tgz
@@ -40,6 +40,7 @@
   when: file_details.stat.exists == false and linux_flavor == 'debian'
 
 - name: Download Centos Image
+  run_once: true
   get_url:
     url: http://cloud.centos.org/centos/7/vagrant/x86_64/images/CentOS-7.Libvirt.box
     dest: ~/.images/centos.box.tgz

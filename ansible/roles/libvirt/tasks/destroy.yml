@@ -9,6 +9,7 @@
   virt:
     command: undefine
     name: "{{ inventory_hostname }}"
+  ignore_errors: yes
 
 - name: remove image
   file:

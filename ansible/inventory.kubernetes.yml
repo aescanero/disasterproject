@@ -17,4 +17,3 @@ all:
       vars:
         network_name: demo_network
         network: "192.168.8"
-

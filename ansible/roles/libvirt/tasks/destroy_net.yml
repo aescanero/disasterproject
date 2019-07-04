@@ -1,13 +1,36 @@
 ---
+- name: Get all vms
+  virt:
+    command: list_vms
+  register: all_vms
+  run_once: true
+
+- name: get networks used by vms
+  shell: virsh domiflist --domain {{ item }}|grep network|grep {{ network_name }}
+  with_items: "{{ all_vms.list_vms }} "
+  when: interfaces is not defined or interfaces != ""
+  run_once: true
+  register: interfaces
+  ignore_errors: yes
+
+- name: Check if network is used by vms
+  debug:
+    msg: The network is in use
+  register: networkinuse
+  when: item.stdout != ""
+  with_items: "{{ interfaces.results }} "
+
 - virt_net:
     command: destroy
     name: "{{ network_name }}"
   run_once: true
   ignore_errors: yes
+  when: networkinuse is not defined or networkinuse == ""
 
 - virt_net:
     command: undefine
     name: "{{ network_name }}"
   run_once: true
   ignore_errors: yes
+  when: networkinuse is not defined or networkinuse == ""
 ...
