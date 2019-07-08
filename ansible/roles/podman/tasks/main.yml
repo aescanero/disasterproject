@@ -14,8 +14,13 @@
     - libseccomp2
   when: ansible_os_family == "Debian"
 
+- name: Creates directory cni
+  file:
+    path: /opt/cni/bin
+    state: directory
+
 - name: Install last CNI version
-  shell: curl -LSs https://github.com/containernetworking/plugins/releases/download/v0.7.5/cni-plugins-amd64-v0.7.5.tgz |tar --no-overwrite-dir -C / -xz
+  shell: curl -LSs https://github.com/containernetworking/plugins/releases/download/v0.8.1/cni-plugins-linux-amd64-v0.8.1.tgz |tar --no-overwrite-dir -C /opt/cni/bin -xz
   args:
     warn: no
 

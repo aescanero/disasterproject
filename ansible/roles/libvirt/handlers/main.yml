@@ -1,4 +1,6 @@
 ---
 - name: clean box
-  command: rm -f /var/lib/libvirt/images/box.img
+  file:
+    path: /var/lib/libvirt/images/box.img
+    state: absent
 ...

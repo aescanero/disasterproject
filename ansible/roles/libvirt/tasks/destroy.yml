@@ -5,6 +5,11 @@
     name: "{{ inventory_hostname }}"
   ignore_errors: yes
 
+- name: remove DHCP Lease
+  shell: |
+    virsh net-update {{ network_name }} delete ip-dhcp-host "<host ip='{{ vm_ip }}'/>" --live
+  ignore_errors: yes
+
 - name: remove vm
   virt:
     command: undefine

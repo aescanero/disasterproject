@@ -17,20 +17,33 @@
   debug:
     msg: The network is in use
   register: networkinuse
+  run_once: true
   when: item.stdout != ""
   with_items: "{{ interfaces.results }} "
+
+- name: Clear all dhcp leases
+  run_once: true
+  copy:
+    dest: /var/lib/libvirt/dnsmasq/{{ network_name }}.status
+    content: ""
+
+#- name: "Display"
+#  debug:
+#    var: item
+#  when: item != ""
+#  loop: "{{ networkinuse | json_query('networkinuse.results[*].stdout') }}"
 
 - virt_net:
     command: destroy
     name: "{{ network_name }}"
   run_once: true
   ignore_errors: yes
-  when: networkinuse is not defined or networkinuse == ""
+  when: networkinuse.results|length == 0
 
 - virt_net:
     command: undefine
     name: "{{ network_name }}"
   run_once: true
   ignore_errors: yes
-  when: networkinuse is not defined or networkinuse == ""
+  when: networkinuse.results|length == 0
 ...
