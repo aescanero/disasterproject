@@ -1,4 +1,11 @@
 ---
+- name: Change file ownership, group and permissions
+  delegate_to: localhost
+  run_once: true
+  file:
+    path: "{{ ansible_ssh_private_key_file }}"
+    mode: '0600'
+
 - name: Obtain vm information
   setup:
   vars:

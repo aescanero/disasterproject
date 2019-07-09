@@ -47,17 +47,14 @@ $ ansible-playbook -i inventory.yml create.yml -K
 Se accede a la MV con:
 ```
 $ chmod 600 files/insecure_private_key
-$ sh -i files/insecure_private_key -o StrictHostKeyChecking=no vagrant@IP_VM
+$ ssh -i files/insecure_private_key -o StrictHostKeyChecking=no vagrant@IP_VM
 ```
 
+## Kubernetes
 
-## Entorno Ansible para el despliegue de entornos de máquinas virtuales con
-## Kubernetes, containerd, metallb (balanceador) y weave (gestión de red)
-## para pruebas/demo con KVM y pods
+### Entorno Ansible para el despliegue de entornos de máquinas virtuales con Kubernetes, containerd, metallb (balanceador) y weave (gestión de red) para pruebas/demo con KVM y pods 
 
-El fichero inventory.kubernetes.yml define las máquinas virtuales que van a ser
-lanzadas, modificando el atributo container_engine para elegir el motor de contenedores
-y tiene la siguiente definición:
+El fichero inventory.kubernetes.yml define las máquinas virtuales que van a ser lanzadas, modificando el atributo container_engine para elegir el motor de contenedores y tiene la siguiente definición:
 
 ```yaml
 all:
@@ -89,17 +86,14 @@ $ ansible-playbook -i inventory.kubernetes.yml create.yml -K
 Se accede a la MV con:
 ```
 $ chmod 600 files/insecure_private_key
-$ sh -i files/insecure_private_key -o StrictHostKeyChecking=no vagrant@IP_VM
+$ ssh -i files/insecure_private_key -o StrictHostKeyChecking=no vagrant@IP_VM
 ```
 
+## K3s
 
-## Entorno Ansible para el despliegue de entornos de máquinas virtuales con
-## K3s, metallb (balanceador) y flannel (gestión de red), sin servicelb ni
-## traefik, para pruebas/demo con KVM y pods
+### Entorno Ansible para el despliegue de entornos de máquinas virtuales con K3s, metallb (balanceador) y flannel (gestión de red), sin servicelb, para pruebas/demo con KVM y pods
 
-El fichero inventory.k3s.yml define las máquinas virtuales que van a ser
-lanzadas, modificando el atributo container_engine para elegir el motor de contenedores
-y tiene la siguiente definición:
+El fichero inventory.k3s.yml define las máquinas virtuales que van a ser lanzadas, modificando el atributo container_engine para elegir el motor de contenedores y tiene la siguiente definición:
 
 ```yaml
 all:
@@ -131,5 +125,45 @@ $ ansible-playbook -i inventory.k3s.yml create.yml -K
 Se accede a la MV con:
 ```
 $ chmod 600 files/insecure_private_key
-$ sh -i files/insecure_private_key -o StrictHostKeyChecking=no vagrant@IP_VM
+$ ssh -i files/insecure_private_key -o StrictHostKeyChecking=no vagrant@IP_VM
+```
+
+## K3s+RIO
+
+### Entorno Ansible para el despliegue de entornos de máquinas virtuales con K3s, metallb (balanceador) y flannel (gestión de red), sin servicelb, para pruebas/demo con KVM y MicroPaaS RIO de Rancher
+
+El fichero inventory.rio.yml define las máquinas virtuales que van a ser lanzadas, modificando el atributo container_engine para elegir el motor de contenedores y tiene la siguiente definición:
+
+```yaml
+all:
+  children:
+    vms:
+      hosts:
+        MACHINE_NAME1:
+          memory: MEMORY_IN_MB
+          vcpus: vCPUS_FOR_VM
+          vm_ip: "IP_VM_MACHINE_NAME1"
+          linux_flavor: "debian|centos"
+          container_engine: "k3s"
+        MACHINE_NAME2:
+          memory: MEMORY_IN_MB
+          vcpus: vCPUS_FOR_VM
+          vm_ip: "IP_VM_MACHINE_NAME2"
+          linux_flavor: "debian|centos"
+          container_engine: "k3s"
+      vars:
+        network_name: NETWORK_NAME
+        network: "VM_NETWORK"
+        rio: true
+```
+
+Se ejecuta con 
+```
+$ ansible-playbook -i inventory.rio.yml create.yml -K
+```
+
+Se accede a la MV con:
+```
+$ chmod 600 files/insecure_private_key
+$ ssh -i files/insecure_private_key -o StrictHostKeyChecking=no vagrant@IP_VM
 ```

@@ -84,7 +84,7 @@
       Description=k3s
       
       [Service]
-      ExecStart=/usr/bin/k3s server --no-deploy servicelb --no-deploy traefik --bind-address {{ vm_ip }}
+      ExecStart=/usr/bin/k3s server --no-deploy servicelb --bind-address {{ vm_ip }}
       Restart=always
       StartLimitInterval=0
       RestartSec=10
