@@ -1,0 +1,9 @@
+---
+- name: hibernate vm
+  shell: virsh save {{ inventory_hostname }} /var/lib/libvirt/qemu/save/{{ inventory_hostname }}.save --running
+
+- name: remove DHCP Lease
+  shell: |
+    virsh net-update {{ network_name }} delete ip-dhcp-host "<host ip='{{ vm_ip }}'/>" --live
+  ignore_errors: yes
+...

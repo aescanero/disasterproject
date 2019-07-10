@@ -1,5 +1,5 @@
 ---
-- name: Main Task to Create Virtual Machines
+- name: Main Task to Destroy Virtual Machines
   hosts: vms
   any_errors_fatal: true
   become_user: root
