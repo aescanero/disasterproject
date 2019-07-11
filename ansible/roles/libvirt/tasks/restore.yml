@@ -1,4 +1,9 @@
 ---
+- name: ensure libvirt network is present
+  virt_net:
+    name: "{{ network_name }}"
+    state: active
+
 - name: getMAC
   shell: virsh domiflist --domain "{{ inventory_hostname }}" | grep "{{ network_name }}" | awk '{print $5}'
   register: mac
