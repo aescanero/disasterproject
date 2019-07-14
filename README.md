@@ -43,6 +43,18 @@ Se ejecuta con
 ```
 $ ansible-playbook -i inventory.yml create.yml -K
 ```
+Se elimina con 
+```
+$ ansible-playbook -i inventory.yml destroy.yml -K
+```
+Se guarda con 
+```
+$ ansible-playbook -i inventory.yml hibernate.yml -K
+```
+Se restaura con 
+```
+$ ansible-playbook -i inventory.yml restore.yml -K
+```
 
 Se accede a la MV con:
 ```
@@ -81,6 +93,18 @@ all:
 Se ejecuta con 
 ```
 $ ansible-playbook -i inventory.kubernetes.yml create.yml -K
+```
+Se elimina con 
+```
+$ ansible-playbook -i inventory.kubernetes.yml destroy.yml -K
+```
+Se guarda con 
+```
+$ ansible-playbook -i inventory.kubernetes.yml hibernate.yml -K
+```
+Se restaura con 
+```
+$ ansible-playbook -i inventory.kubernetes.yml restore.yml -K
 ```
 
 Se accede a la MV con:
@@ -121,6 +145,18 @@ Se ejecuta con
 ```
 $ ansible-playbook -i inventory.k3s.yml create.yml -K
 ```
+Se elimina con 
+```
+$ ansible-playbook -i inventory.k3s.yml destroy.yml -K
+```
+Se guarda con 
+```
+$ ansible-playbook -i inventory.k3s.yml hibernate.yml -K
+```
+Se restaura con 
+```
+$ ansible-playbook -i inventory.k3s.yml restore.yml -K
+```
 
 Se accede a la MV con:
 ```
@@ -160,6 +196,18 @@ all:
 Se ejecuta con 
 ```
 $ ansible-playbook -i inventory.rio.yml create.yml -K
+```
+Se elimina con 
+```
+$ ansible-playbook -i inventory.rio.yml destroy.yml -K
+```
+Se guarda con 
+```
+$ ansible-playbook -i inventory.rio.yml hibernate.yml -K
+```
+Se restaura con 
+```
+$ ansible-playbook -i inventory.rio.yml restore.yml -K
 ```
 
 Se accede a la MV con:

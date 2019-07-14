@@ -1,5 +1,6 @@
 ---
 - name: ensure libvirt network is present
+  ignore_errors: yes
   virt_net:
     name: "{{ network_name }}"
     state: active
