@@ -54,12 +54,6 @@
     path: /opt/cni/bin
     state: directory
 
-- name: Install last CNI version
-  shell: curl -LSs https://github.com/containernetworking/plugins/releases/download/v0.8.1/cni-plugins-linux-amd64-v0.8.1.tgz |tar --no-overwrite-dir -C /opt/cni/bin -xz
-  args:
-    warn: no
-
-
 - name: install k3s
   get_url:
     url: https://github.com/rancher/k3s/releases/latest/download/k3s
@@ -126,7 +120,6 @@
   shell: "{{ item }}"
   with_items:
     - cp -i /etc/rancher/k3s/k3s.yaml $HOME/.kube/config
-    - k3s kubectl apply -f "https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml"
     - k3s kubectl apply -f "https://raw.githubusercontent.com/danderson/metallb/master/manifests/metallb.yaml"
 
 - name: Define a default external pool for Kubernetes
@@ -195,7 +188,7 @@
       Description=k3s
       
       [Service]
-      ExecStart=/usr/bin/k3s agent --no-flannel --server https://{{ master_name.stdout }}:6443 --token {{ token.content |  b64decode }}
+      ExecStart=/usr/bin/k3s agent --server https://{{ master_name.stdout }}:6443 --token {{ token.content |  b64decode }}
       Restart=always
       StartLimitInterval=0
       RestartSec=10
@@ -222,8 +215,6 @@
   shell: k3s kubectl get service -n kube-system k8dashlb -o jsonpath='{.status.loadBalancer.ingress[].ip}'
   register: k8dash_ip
 
-- debug: var=k8dash_ip
-
 - name: Obtain dashboard Token
   when: master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
@@ -244,5 +235,4 @@
       Things left to do:
         - Access to https://{{k8dash_ip.stdout}}
         - Use the next token to access dashboard: {{k8dash_token.stdout}}
-
 ...
