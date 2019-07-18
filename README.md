@@ -139,7 +139,16 @@ all:
       vars:
         network_name: NETWORK_NAME
         network: "VM_NETWORK"
+	k3s_addons:
+        - rio
+        - traefik-ui
 ```
+
+Se añade la variable global opcional: k3s_addons para añadir ciertas caracteristicas a la demo como pueden ser acceso al interfaz web de Traefik o instalar el microPaaS RIO
+
+* k3s_addons: OPCIONAL, es una lista que puede contener al menos alguno de los siguientes valores:
+  * "rio" para instalar el microPaaS RIO junto con k3s
+  * "traefik-ui" para poder acceder a la interfaz web de traefik (http://IP_service_traefik:8080, username admin, password admin)
 
 Se ejecuta con 
 ```
@@ -158,60 +167,9 @@ Se restaura con
 $ ansible-playbook -i inventory.k3s.yml restore.yml -K
 ```
 
-Se accede a la MV con:
+Se accede a las Máquinas virtuales con:
 ```
 $ chmod 600 files/insecure_private_key
 $ ssh -i files/insecure_private_key -o StrictHostKeyChecking=no vagrant@IP_VM
 ```
 
-## K3s+RIO
-
-### Entorno Ansible para el despliegue de entornos de máquinas virtuales con K3s, metallb (balanceador) y flannel (gestión de red), sin servicelb, para pruebas/demo con KVM y MicroPaaS RIO de Rancher
-
-El fichero inventory.rio.yml define las máquinas virtuales que van a ser lanzadas, modificando el atributo container_engine para elegir el motor de contenedores y tiene la siguiente definición:
-
-```yaml
-all:
-  children:
-    vms:
-      hosts:
-        MACHINE_NAME1:
-          memory: MEMORY_IN_MB
-          vcpus: vCPUS_FOR_VM
-          vm_ip: "IP_VM_MACHINE_NAME1"
-          linux_flavor: "debian|centos"
-          container_engine: "k3s"
-        MACHINE_NAME2:
-          memory: MEMORY_IN_MB
-          vcpus: vCPUS_FOR_VM
-          vm_ip: "IP_VM_MACHINE_NAME2"
-          linux_flavor: "debian|centos"
-          container_engine: "k3s"
-      vars:
-        network_name: NETWORK_NAME
-        network: "VM_NETWORK"
-        rio: true
-```
-
-Se ejecuta con 
-```
-$ ansible-playbook -i inventory.rio.yml create.yml -K
-```
-Se elimina con 
-```
-$ ansible-playbook -i inventory.rio.yml destroy.yml -K
-```
-Se guarda con 
-```
-$ ansible-playbook -i inventory.rio.yml hibernate.yml -K
-```
-Se restaura con 
-```
-$ ansible-playbook -i inventory.rio.yml restore.yml -K
-```
-
-Se accede a la MV con:
-```
-$ chmod 600 files/insecure_private_key
-$ ssh -i files/insecure_private_key -o StrictHostKeyChecking=no vagrant@IP_VM
-```

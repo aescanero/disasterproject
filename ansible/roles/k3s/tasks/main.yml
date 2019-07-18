@@ -209,25 +209,28 @@
   pause:
     seconds: 20
 
+- name: Install addons
+  when: k3s_addons is defined and master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  include: "{{ loop_item }}.yml"
+  with_items: "{{ k3s_addons }}"
+  loop_control:
+    loop_var: loop_item
+
 - name: Obtain dashboard IP
   when: master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
   shell: k3s kubectl get service -n kube-system k8dashlb -o jsonpath='{.status.loadBalancer.ingress[].ip}'
   register: k8dash_ip
+  retries: 3
+  delay: 5
+  until: k8dash_ip.stdout != ""
 
 - name: Obtain dashboard Token
   when: master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
   shell: k3s kubectl get secret `k3s kubectl get secret|grep ^k8dash|awk '{print $1}'` -o jsonpath="{.data.token}"|base64 -d
   register: k8dash_token
-
-- name: Deploy RIO
-  when: master_name is defined and master_name.stdout == inventory_hostname and rio is defined and rio == true
-  run_once: true
-  shell: "{{ item }}"
-  with_items:
-    - curl -sfL https://get.rio.io | sh -
-    - rio install
 
 - name: display post install message
   debug:

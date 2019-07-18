@@ -15,6 +15,7 @@ all:
           linux_flavor: "debian"
           container_engine: "k3s"
       vars:
-        network_name: demo_network
+        network_name: demo-network
         network: "192.168.8"
-
+        k3s_addons:
+        - traefik-ui

@@ -15,6 +15,6 @@ all:
           linux_flavor: "debian"
           container_engine: "podman"
       vars:
-        network_name: demo_network
+        network_name: demo-network
         network: "192.168.8"
 

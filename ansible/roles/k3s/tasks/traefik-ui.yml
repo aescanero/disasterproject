@@ -1,0 +1,107 @@
+---
+- name: Define a traefik ingress
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  copy:
+    dest: "{{ ansible_env.HOME }}/traefik-ingress.yml"
+    content: |
+      ---
+      apiVersion: extensions/v1beta1
+      kind: Ingress
+      metadata:
+        name: traefik-dashboard-ingress
+        namespace: kube-system
+        annotations:
+          kubernetes.io/ingress.class: traefik
+          traefik.ingress.kubernetes.io/frontend-entry-points: http,https
+          traefik.ingress.kubernetes.io/redirect-entry-point: https
+          traefik.ingress.kubernetes.io/redirect-permanent: "true"
+      spec:
+        rules:
+        - host: traefik-ui.{{ network_name }}.local
+          http:
+            paths:
+            - path: /
+              backend:
+                serviceName: traefik
+                servicePort: 8080
+        - host: k8dash.{{ network_name }}.local
+          http:
+            paths:
+            - path: /
+              backend:
+                serviceName: k8dash
+                servicePort: 80
+
+- name: Define a patch for traefik configmap
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  copy:
+    dest: "{{ ansible_env.HOME }}/traefik.cm.patch.yml"
+    content: |
+      data:
+        traefik.toml: |
+          # traefik.toml
+          logLevel = "INFO"
+          defaultEntryPoints = ["http","https","traefik"]
+          [entryPoints]
+            [entryPoints.http]
+            address = ":80"
+            compress = true
+            [entryPoints.https]
+            address = ":443"
+            compress = true
+              [entryPoints.https.tls]
+                [[entryPoints.https.tls.certificates]]
+                CertFile = "/ssl/tls.crt"
+                KeyFile = "/ssl/tls.key"
+            [entryPoints.traefik]
+              address = ":8080"
+              [entryPoints.traefik.auth.basic]
+              users = ["admin:$apr1$zjjGWKW4$W2JIcu4m26WzOzzESDF0W/"]
+          [kubernetes]
+            [kubernetes.ingressEndpoint]
+            publishedService = "kube-system/traefik"
+          [traefikLog]
+            format = "json"
+          [api]
+          entryPoint = "traefik"
+
+- name: Define a patch for traefik deployment
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  copy:
+    dest: "{{ ansible_env.HOME }}/traefik.deploy.patch.yml"
+    content: |
+      spec:
+        template:
+          spec:
+            containers:
+            - args:
+              - --configfile=/config/traefik.toml
+              image: traefik:1.7.9
+              name: traefik
+              ports:
+              - containerPort: 8080
+                name: dashboard
+                protocol: TCP
+
+- name: Configure traefik deployment
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  shell: k3s kubectl patch deployment -n kube-system traefik -p "$(cat {{ ansible_env.HOME }}/traefik.deploy.patch.yml)"
+  retries: 3
+  delay: 10
+
+- name: Configure traefik configmap
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  shell: k3s kubectl patch configmap -n kube-system traefik -p "$(cat {{ ansible_env.HOME }}/traefik.cm.patch.yml)"
+  retries: 3
+  delay: 10
+
+- name: Configure traefik ingress
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  shell: k3s kubectl apply -f {{ ansible_env.HOME }}/traefik-ingress.yml
+...
