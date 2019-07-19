@@ -97,8 +97,13 @@
     state: started
 
 - name: Wait to raise k3s master
-  pause:
-    seconds: 20
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  shell: k3s kubectl get pods -n kube-system |grep traefik|grep -v helm|grep Running
+  register: test
+  retries: 25
+  delay: 10
+  until: test.stdout != ""
 
 - name: Load k3s token into variable
   when: master_name is defined and master_name.stdout == inventory_hostname
@@ -217,14 +222,20 @@
   loop_control:
     loop_var: loop_item
 
+- name: Wait to raise k8dash
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  shell: k3s kubectl get pods -n kube-system |grep k8dash|grep Running
+  register: test
+  retries: 25
+  delay: 10
+  until: test.stdout != ""
+
 - name: Obtain dashboard IP
   when: master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
   shell: k3s kubectl get service -n kube-system k8dashlb -o jsonpath='{.status.loadBalancer.ingress[].ip}'
   register: k8dash_ip
-  retries: 3
-  delay: 5
-  until: k8dash_ip.stdout != ""
 
 - name: Obtain dashboard Token
   when: master_name is defined and master_name.stdout == inventory_hostname

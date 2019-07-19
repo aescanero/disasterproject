@@ -86,19 +86,33 @@
                 name: dashboard
                 protocol: TCP
 
+- name: Define a patch for traefik service
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  copy:
+    dest: "{{ ansible_env.HOME }}/traefik.svc.patch.yml"
+    content: |
+      spec:
+        ports:
+        - name: dashboard
+          port: 8080
+          protocol: TCP
+          targetPort: dashboard
+
 - name: Configure traefik deployment
   when: master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
   shell: k3s kubectl patch deployment -n kube-system traefik -p "$(cat {{ ansible_env.HOME }}/traefik.deploy.patch.yml)"
-  retries: 3
-  delay: 10
 
 - name: Configure traefik configmap
   when: master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
   shell: k3s kubectl patch configmap -n kube-system traefik -p "$(cat {{ ansible_env.HOME }}/traefik.cm.patch.yml)"
-  retries: 3
-  delay: 10
+
+- name: Configure traefik service
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  shell: k3s kubectl patch service -n kube-system traefik -p "$(cat {{ ansible_env.HOME }}/traefik.svc.patch.yml)"
 
 - name: Configure traefik ingress
   when: master_name is defined and master_name.stdout == inventory_hostname
