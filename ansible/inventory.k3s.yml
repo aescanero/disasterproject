@@ -18,4 +18,5 @@ all:
         network_name: demo-network
         network: "192.168.8"
         k3s_addons:
-        - traefik-ui
+        - traefik
+        - k8dash

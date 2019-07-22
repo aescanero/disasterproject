@@ -1,4 +1,13 @@
 ---
+- name: Wait to raise k3s master
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  shell: k3s kubectl get pods -n kube-system |grep traefik|grep -v helm|grep Running
+  register: test
+  retries: 25
+  delay: 10
+  until: test.stdout != ""
+
 - name: Define a traefik ingress
   when: master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
@@ -9,7 +18,7 @@
       apiVersion: extensions/v1beta1
       kind: Ingress
       metadata:
-        name: traefik-dashboard-ingress
+        name: traefik
         namespace: kube-system
         annotations:
           kubernetes.io/ingress.class: traefik
@@ -25,13 +34,6 @@
               backend:
                 serviceName: traefik
                 servicePort: 8080
-        - host: k8dash.{{ network_name }}.local
-          http:
-            paths:
-            - path: /
-              backend:
-                serviceName: k8dash
-                servicePort: 80
 
 - name: Define a patch for traefik configmap
   when: master_name is defined and master_name.stdout == inventory_hostname

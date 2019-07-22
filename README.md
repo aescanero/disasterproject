@@ -141,14 +141,16 @@ all:
         network: "VM_NETWORK"
 	k3s_addons:
         - rio
-        - traefik-ui
+        - traefik
+        - k8dash
 ```
 
 Se añade la variable global opcional: k3s_addons para añadir ciertas caracteristicas a la demo como pueden ser acceso al interfaz web de Traefik o instalar el microPaaS RIO
 
 * k3s_addons: OPCIONAL, es una lista que puede contener al menos alguno de los siguientes valores:
+  * "k8dash" para activar el dashboard y disponer de visibilidad sobre la plataforma
   * "rio" para instalar el microPaaS RIO junto con k3s
-  * "traefik-ui" para poder acceder a la interfaz web de traefik (http://IP_service_traefik:8080, username admin, password admin)
+  * "traefik" para instalar traefix como ingress (endpoind de la plataforma) y acceder a la interfaz web de traefik (http://IP_service_traefik:8080, username admin, password admin)
 
 Se ejecuta con 
 ```

@@ -32,6 +32,7 @@
     - libseccomp2
     - conntrack
     - ipvsadm
+    - dnsmasq
   when: ansible_os_family == "Debian"
 
 - name: Update repositories cache and install kubernetes dependences
@@ -47,6 +48,7 @@
     - libseccomp
     - conntrack-tools
     - ipvsadm
+    - dnsmasq
   when: ansible_os_family == "Redhat"
 
 - name: Creates directory cni
@@ -69,7 +71,7 @@
   when: master_name is not defined
 
 - name: install /etc/systemd/system/k3smaster.service on master
-  when: master_name is defined and master_name.stdout == inventory_hostname
+  when: master_name is defined and master_name.stdout == inventory_hostname and k3s_addons is defined and "traefik" not in k3s_addons
   run_once: true
   copy:
     dest: /etc/systemd/system/k3smaster.service
@@ -78,7 +80,25 @@
       Description=k3s
       
       [Service]
-      ExecStart=/usr/bin/k3s server --no-deploy servicelb --bind-address {{ vm_ip }}
+      ExecStart=/usr/bin/k3s server --cluster-domain {{ network_name }}.local --no-deploy servicelb --no-deploy traefik --bind-address {{ vm_ip }}
+      Restart=always
+      StartLimitInterval=0
+      RestartSec=10
+      
+      [Install]
+      WantedBy=multi-user.target
+
+- name: install /etc/systemd/system/k3smaster.service on master
+  when: master_name is defined and master_name.stdout == inventory_hostname and k3s_addons is defined and "traefik" in k3s_addons
+  run_once: true
+  copy:
+    dest: /etc/systemd/system/k3smaster.service
+    content: |
+      [Unit]
+      Description=k3s
+      
+      [Service]
+      ExecStart=/usr/bin/k3s server --cluster-domain {{ network_name }}.local --no-deploy servicelb --bind-address {{ vm_ip }}
       Restart=always
       StartLimitInterval=0
       RestartSec=10
@@ -99,18 +119,8 @@
 - name: Wait to raise k3s master
   when: master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
-  shell: k3s kubectl get pods -n kube-system |grep traefik|grep -v helm|grep Running
-  register: test
-  retries: 25
-  delay: 10
-  until: test.stdout != ""
-
-- name: Load k3s token into variable
-  when: master_name is defined and master_name.stdout == inventory_hostname
-  slurp:
-    src: "/var/lib/rancher/k3s/server/node-token"
-  register: token
-  run_once: true
+  pause:
+    seconds: 20
 
 - name: Creates directory
   when: master_name is defined and master_name.stdout == inventory_hostname
@@ -122,10 +132,7 @@
 - name: Configure config for k3s kubectl
   when: master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
-  shell: "{{ item }}"
-  with_items:
-    - cp -i /etc/rancher/k3s/k3s.yaml $HOME/.kube/config
-    - k3s kubectl apply -f "https://raw.githubusercontent.com/danderson/metallb/master/manifests/metallb.yaml"
+  shell: cp -i /etc/rancher/k3s/k3s.yaml "{{ ansible_env.HOME }}"/.kube/config
 
 - name: Define a default external pool for Kubernetes
   when: master_name is defined and master_name.stdout == inventory_hostname
@@ -146,43 +153,36 @@
             addresses:
             - 192.168.8.240/28
 
-- name: Define a service for Dashboard
-  when: master_name is defined and master_name.stdout == inventory_hostname
-  run_once: true
-  copy:
-    dest: "{{ ansible_env.HOME }}/service.yml"
-    content: |
-      apiVersion: v1
-      kind: Service
-      metadata:
-        name: k8dashlb
-        namespace: kube-system
-      spec:
-        ports:
-        - name: http
-          port: 80
-          protocol: TCP
-          targetPort: 4654
-        selector:
-          k8s-app: k8dash
-        type: LoadBalancer
-
-- name: Configure network pool and Dashboard
+- name: Install MetalLB Load Balancer and create auxiliar system account for administration
   when: master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
   shell: "{{ item }}"
   with_items:
+    - k3s kubectl apply -f "https://raw.githubusercontent.com/danderson/metallb/master/manifests/metallb.yaml"
     - k3s kubectl apply -f {{ ansible_env.HOME }}/pool.yml
-    - k3s kubectl apply -f "https://raw.githubusercontent.com/herbrandson/k8dash/master/kubernetes-k8dash.yaml"
-    - k3s kubectl apply -f {{ ansible_env.HOME }}/service.yml
+    - k3s kubectl create serviceaccount dash-sa
+    - k3s kubectl create clusterrolebinding dash-sa --clusterrole=cluster-admin --serviceaccount=default:dash-sa
 
-- name: Create k8dash sa
+- name: Obtain system account Token
   when: master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
-  shell: "{{ item }}"
-  with_items:
-    - k3s kubectl create serviceaccount k8dash-sa
-    - k3s kubectl create clusterrolebinding k8dash-sa --clusterrole=cluster-admin --serviceaccount=default:k8dash-sa
+  shell: k3s kubectl get secret `k3s kubectl get secret|grep ^dash-sa|awk '{print $1}'` -o jsonpath="{.data.token}"|base64 -d
+  register: dash_token
+
+- name: Install addons
+  when: k3s_addons is defined and master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  include: "{{ loop_item }}.yml"
+  with_items: "{{ k3s_addons }}"
+  loop_control:
+    loop_var: loop_item
+
+- name: Load k3s token into variable
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  slurp:
+    src: "/var/lib/rancher/k3s/server/node-token"
+  register: token
+  run_once: true
 
 - name: install /etc/systemd/system/k3s.service on nodes
   when: master_name is defined and master_name.stdout != inventory_hostname
@@ -211,42 +211,7 @@
     state: started
 
 - name: Wait to raise k3s nodes
+  run_once: true
   pause:
     seconds: 20
-
-- name: Install addons
-  when: k3s_addons is defined and master_name is defined and master_name.stdout == inventory_hostname
-  run_once: true
-  include: "{{ loop_item }}.yml"
-  with_items: "{{ k3s_addons }}"
-  loop_control:
-    loop_var: loop_item
-
-- name: Wait to raise k8dash
-  when: master_name is defined and master_name.stdout == inventory_hostname
-  run_once: true
-  shell: k3s kubectl get pods -n kube-system |grep k8dash|grep Running
-  register: test
-  retries: 25
-  delay: 10
-  until: test.stdout != ""
-
-- name: Obtain dashboard IP
-  when: master_name is defined and master_name.stdout == inventory_hostname
-  run_once: true
-  shell: k3s kubectl get service -n kube-system k8dashlb -o jsonpath='{.status.loadBalancer.ingress[].ip}'
-  register: k8dash_ip
-
-- name: Obtain dashboard Token
-  when: master_name is defined and master_name.stdout == inventory_hostname
-  run_once: true
-  shell: k3s kubectl get secret `k3s kubectl get secret|grep ^k8dash|awk '{print $1}'` -o jsonpath="{.data.token}"|base64 -d
-  register: k8dash_token
-
-- name: display post install message
-  debug:
-    msg: |
-      Things left to do:
-        - Access to https://{{k8dash_ip.stdout}}
-        - Use the next token to access dashboard: {{k8dash_token.stdout}}
 ...

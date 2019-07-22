@@ -1,0 +1,59 @@
+---
+- name: Define a service for Dashboard
+  copy:
+    dest: "{{ ansible_env.HOME }}/service.yml"
+    content: |
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: k8dashlb
+        namespace: kube-system
+      spec:
+        ports:
+        - name: http
+          port: 80
+          protocol: TCP
+          targetPort: 4654
+        selector:
+          k8s-app: k8dash
+        type: LoadBalancer
+
+- name: Define a patch for traefik ingress
+  copy:
+    dest: "{{ ansible_env.HOME }}/traefik.k8dash.ingress.patch.yml"
+    content: |
+      spec:
+        rules:
+        - host: k8dash.{{ network_name }}.local
+          http:
+            paths:
+            - path: /
+              backend:
+                serviceName: k8dash
+                servicePort: 80
+
+- name: Configure Dashboard
+  shell: "{{ item }}"
+  with_items:
+    - k3s kubectl apply -f "https://raw.githubusercontent.com/herbrandson/k8dash/master/kubernetes-k8dash.yaml"
+    - k3s kubectl apply -f {{ ansible_env.HOME }}/service.yml
+    - k3s kubectl patch ingress -n kube-system traefik -p "$(cat {{ ansible_env.HOME }}/traefik.k8dash.ingress.patch.yml)"
+
+- name: Wait to raise k8dash
+  shell: k3s kubectl get pods -n kube-system |grep k8dash|grep Running
+  register: test
+  retries: 25
+  delay: 10
+  until: test.stdout != ""
+
+- name: Obtain dashboard IP
+  shell: k3s kubectl get service -n kube-system k8dashlb -o jsonpath='{.status.loadBalancer.ingress[].ip}'
+  register: k8dash_ip
+
+- name: HOW TO ACCESS TO DASHBOARD
+  debug:
+    msg: |
+      Things left to do:
+        - Access to https://{{k8dash_ip.stdout}}
+        - Use the next token to access dashboard: {{dash_token.stdout}}
+...
