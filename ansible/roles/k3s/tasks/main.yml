@@ -32,7 +32,6 @@
     - libseccomp2
     - conntrack
     - ipvsadm
-    - dnsmasq
   when: ansible_os_family == "Debian"
 
 - name: Update repositories cache and install kubernetes dependences
@@ -48,7 +47,6 @@
     - libseccomp
     - conntrack-tools
     - ipvsadm
-    - dnsmasq
   when: ansible_os_family == "Redhat"
 
 - name: Creates directory cni
