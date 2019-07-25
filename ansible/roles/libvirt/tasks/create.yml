@@ -46,8 +46,10 @@
 
 - name: Ansible check if vm image exists.
   stat:
-    path: /var/lib/libvirt/images/"{{ inventory_hostname }}".qcow2
+    path: /var/lib/libvirt/images/{{ inventory_hostname }}.qcow2
   register: vm_file_details
+
+- debug: var=vm_file_details
 
 - name: Unarchive the image
   command: tar -zxf ~/.images/{{linux_flavor}}.box.tgz --exclude='./Vagrantfile' --exclude='./metadata.json' -C /var/lib/libvirt/images/
@@ -63,11 +65,20 @@
   notify: clean box
 
 - name: image chgrp
+  when: vm_file_details.stat.exists == false
   file:
    path: /var/lib/libvirt/images
    group: "libvirt"
 
+- name: Check VM status
+  virt:
+    command: status
+    name: "{{ inventory_hostname }}"
+  register: vm_status
+  ignore_errors: yes
+
 - name: create_vm
+  when: vm_status.status is not defined
   virt:
     command: define
     name: "{{ inventory_hostname }}"
@@ -75,6 +86,7 @@
     xml: "{{ lookup('template', 'vm.xml.j2') }}"
 
 - name: getMAC
+  when: vm_status.status is not defined
   shell: virsh domiflist --domain "{{ inventory_hostname }}" | grep "{{ network_name }}" | awk '{print $5}'
   register: mac
 
@@ -82,8 +94,21 @@
     name: '{{ network_name }}'
     command: modify
     xml: "<host mac='{{mac.stdout}}' name='{{ inventory_hostname }}.{{ network_name }}.local' ip='{{ vm_ip }}'/>"
+  when: vm_status.status is not defined
+
+- name: Check that the VM is hibernate
+  when: vm_status.status is defined and vm_status.status == "shutdown"
+  stat:
+    path: /var/lib/libvirt/qemu/save/{{ inventory_hostname }}.save
+  register: vm_save_stat_result
+
+- name: restore vm
+  when: vm_save_stat_result.stat is defined and vm_save_stat_result.stat.exists == true
+  shell: virsh restore /var/lib/libvirt/qemu/save/{{ inventory_hostname }}.save --running
+  register: vm_restore
 
 - name: start_vm
+  when: vm_restore.stdout is not defined and vm_status.status is defined and vm_status.status != "running"
   virt:
     command: start
     name: "{{ inventory_hostname }}"

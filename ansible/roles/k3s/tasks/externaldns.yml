@@ -17,8 +17,8 @@
 - name: Define PowerDNS
   run_once: true
   vars:
-    randomkey1: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters,digits,hexdigits,punctuation') | b64encode }}"
-    randomkey2: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters,digits,hexdigits,punctuation') | b64encode }}"
+    randomkey1: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters,digits') | b64encode }}"
+    randomkey2: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters,digits') | b64encode }}"
   copy:
     dest: "{{ ansible_env.HOME }}/powerdns.yml"
     content: |
@@ -63,7 +63,11 @@
             # serviceAccountName: external-dns
             containers:
             - name: powerdns
-              image: pschiffe/pdns-mysql
+              image: pschiffe/pdns-mysql:alpine
+              lifecycle:
+                postStart:
+                  exec:
+                    command: ["/bin/sh", "-c", "sleep 20 ; pdnsutil create-zone {{ network_name }}.local"]
               env:
               - name: PDNS_api_key
                 valueFrom:
@@ -78,6 +82,8 @@
                 value: "yes"
               - name: PDNS_webserver_address
                 value: "0.0.0.0"
+              - name: PDNS_webserver_allow_from
+                value: "0.0.0.0/0"
               - name: PDNS_webserver_password
                 valueFrom:
                   secretKeyRef:
@@ -94,7 +100,7 @@
               - name: PDNS_default_soa_mail
                 value: "hostmaster.{{ network_name }}.local"
               - name: MYSQL_ENV_MYSQL_HOST
-                value: "localhost"
+                value: "127.0.0.1"
               - name: MYSQL_ENV_MYSQL_PASSWORD
                 valueFrom:
                   secretKeyRef:
@@ -115,6 +121,35 @@
                 protocol: UDP
               - containerPort: 8081
                 name: powerdns-api
+                protocol: TCP
+            - name: powerdns-admin
+              image: aescanero/docker-powerdns-admin-alpine
+              env:
+              - name: PDNS_API_KEY
+                valueFrom:
+                  secretKeyRef:
+                    name: pdns-secret
+                    key: PDNS_APIKEY
+              - name: PDNS_PROTO
+                value: "http"
+              - name: PDNS_HOST
+                value: "127.0.0.1"
+              - name: PDNS_PORT
+                value: "8081"
+              - name: PDNSADMIN_SQLA_DB_HOST
+                value: "127.0.0.1"
+              - name: PDNSADMIN_SQLA_DB_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: mysql-secret
+                    key: MYSQL_PASS
+              - name: PDNSADMIN_SQLA_DB_NAME
+                value: "powerdns"
+              - name: PDNSADMIN_SQLA_DB_USER
+                value: "powerdns"
+              ports:
+              - containerPort: 9091
+                name: pdns-admin-http
                 protocol: TCP
             - name: mysql
               image: yobasystems/alpine-mariadb
@@ -137,7 +172,7 @@
       apiVersion: v1
       kind: Service
       metadata:
-        name: external-dns
+        name: endpoint-dns
         namespace: external-dns
       spec:
         ports:
@@ -152,7 +187,7 @@
       apiVersion: v1
       kind: Service
       metadata:
-        name: pdns-api
+        name: powerdns-api
         namespace: external-dns
       spec:
         ports:
@@ -163,14 +198,31 @@
         selector:
           app: powerdns
         type: ClusterIP
+      ---
+      apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: helm-installer-external-dns
+        namespace: external-dns
+      ---
+      apiVersion: rbac.authorization.k8s.io/v1beta1
+      kind: ClusterRoleBinding
+      metadata:
+        name: helm-installer-external-dns
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: cluster-admin
+      subjects:
+      - kind: ServiceAccount
+        name: helm-installer-external-dns
+        namespace: external-dns
 
 - name: Install External-DNS with PowerDNS
   run_once: true
   shell: "{{ item }}"
   with_items:
     - k3s kubectl apply -f {{ ansible_env.HOME }}/powerdns.yml
-    - k3s kubectl create serviceaccount helm-installer-external-dns -n external-dns
-    - k3s kubectl create clusterrolebinding helm-installer-external-dns --clusterrole=cluster-admin --serviceaccount=external-dns:helm-installer-external-dns
 
 - name: Obtain helm account token for external-dns
   when: master_name is defined and master_name.stdout == inventory_hostname
@@ -208,11 +260,11 @@
               - --set-string
               - provider=pdns
               - --set-string
-              - pdns.apiUrl=http://pdns-api.external-dns.svc.{{ network_name }}.local
+              - pdns.apiUrl=http://powerdns-api.external-dns.svc.{{ network_name }}.local
               - --set-string
               - pdns.apiPort=8081
               - --set-string
-              - pdns.apiKey="$(pdns_apikey)"
+              - pdns.apiKey=$(pdns_apikey)
               - --set-string
               - txtOwnerId=external-dns
               - --set-string
@@ -237,52 +289,6 @@
             serviceAccount: helm-installer-external-dns
             serviceAccountName: helm-installer-external-dns
             restartPolicy: OnFailure
-#              volumeMounts:
-#              - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
-#                name: {{ helm_token_external_dns.stdout }}
-#                readOnly: true
-#            volumes:
-###            - name: {{ helm_token_external_dns.stdout }}
-#              secret:
-#                defaultMode: 420
-#                secretName: {{ helm_token_external_dns.stdout }}
-#      ---
-#      apiVersion: v1
-#      kind: ServiceAccount
-#      metadata:
-#        name: external-dns
-#        namespace: external-dns
-#      ---
-#      apiVersion: rbac.authorization.k8s.io/v1beta1
-#      kind: ClusterRole
-#      metadata:
-#        name: external-dns
-#      rules:
-#      - apiGroups: [""]
-#        resources: ["services"]
-#        verbs: ["get","watch","list"]
-#      - apiGroups: ["extensions"]
-#        resources: ["ingresses"]
-#        verbs: ["get","watch","list"]
-#      - apiGroups: [""]
-#        resources: ["pods"]
-#        verbs: ["get","watch","list"]
-#      - apiGroups: [""]
-#        resources: ["nodes"]
-#        verbs: ["list"]
-#      ---
-#      apiVersion: rbac.authorization.k8s.io/v1beta1
-#      kind: ClusterRoleBinding
-#      metadata:
-#        name: external-dns-viewer
-#      roleRef:
-#        apiGroup: rbac.authorization.k8s.io
-#        kind: ClusterRole
-#        name: external-dns
-#      subjects:
-#      - kind: ServiceAccount
-#        name: external-dns
-#        namespace: external-dns
 
 - name: Install External-DNS with PowerDNS
   run_once: true
@@ -290,13 +296,28 @@
   with_items:
     - k3s kubectl apply -f {{ ansible_env.HOME }}/external-dns.yml
 
-- name: enable and start dnsmasq service
-  systemd:
-    name: dnsmasq
-    daemon_reload: yes
-    enabled: yes
-    masked: no
-    state: started
-  run_once: true
+- name: Wait to raise external-dns
+  shell: k3s kubectl get pods -n external-dns |grep ^external-dns|grep Running
+  register: test
+  retries: 25
+  delay: 10
+  until: test.stdout != ""
+
+- name: Obtain dashboard IP
+  shell: k3s kubectl get service -n external-dns endpoint-dns -o jsonpath='{.status.loadBalancer.ingress[].ip}'
+  register: externaldns_ip
+
+- name: Make sure old dns conf is not in the resolv.conf configuration
   delegate_to: localhost
+  lineinfile:
+    path: /etc/resolv.conf
+    state: absent
+    regexp: '#Added by Ansible External-dns role'
+
+- name: Add a line to resolv.conf
+  delegate_to: localhost
+  lineinfile:
+    path: /etc/resolv.conf
+    insertbefore: '^nameserver'
+    line: 'nameserver {{ externaldns_ip.stdout }} #Added by Ansible External-dns role'
 ...
