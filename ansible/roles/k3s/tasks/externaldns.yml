@@ -19,6 +19,7 @@
   vars:
     randomkey1: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters,digits') | b64encode }}"
     randomkey2: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters,digits') | b64encode }}"
+    randomkey3: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters,digits') | b64encode }}"
   copy:
     dest: "{{ ansible_env.HOME }}/powerdns.yml"
     content: |
@@ -31,20 +32,13 @@
       apiVersion: v1
       kind: Secret
       metadata:
-        name: pdns-secret
+        name: external-dns
         namespace: external-dns
       type: Opaque
       data:
         PDNS_APIKEY: {{ randomkey1 }}
-      ---
-      apiVersion: v1
-      kind: Secret
-      metadata:
-        name: mysql-secret
-        namespace: external-dns
-      type: Opaque
-      data:
-        MYSQL_PASS: {{ randomkey2 }}
+        PDNSADMIN_SECRET: {{ randomkey2 }}
+        MYSQL_PASS: {{ randomkey3 }}
       ---
       apiVersion: extensions/v1beta1
       kind: Deployment
@@ -72,7 +66,7 @@
               - name: PDNS_api_key
                 valueFrom:
                   secretKeyRef:
-                    name: pdns-secret
+                    name: external-dns
                     key: PDNS_APIKEY
               - name: PDNS_master
                 value: "yes"
@@ -87,7 +81,7 @@
               - name: PDNS_webserver_password
                 valueFrom:
                   secretKeyRef:
-                    name: pdns-secret
+                    name: external-dns
                     key: PDNS_APIKEY
               - name: PDNS_version_string
                 value: "anonymous"
@@ -104,7 +98,7 @@
               - name: MYSQL_ENV_MYSQL_PASSWORD
                 valueFrom:
                   secretKeyRef:
-                    name: mysql-secret
+                    name: external-dns
                     key: MYSQL_PASS
               - name: MYSQL_ENV_MYSQL_DATABASE
                 value: "powerdns"
@@ -113,7 +107,7 @@
               - name: MYSQL_ENV_MYSQL_ROOT_PASSWORD
                 valueFrom:
                   secretKeyRef:
-                    name: mysql-secret
+                    name: external-dns
                     key: MYSQL_PASS
               ports:
               - containerPort: 53
@@ -128,8 +122,13 @@
               - name: PDNS_API_KEY
                 valueFrom:
                   secretKeyRef:
-                    name: pdns-secret
+                    name: external-dns
                     key: PDNS_APIKEY
+              - name: PDNSADMIN_SECRET_KEY
+                valueFrom:
+                  secretKeyRef:
+                    name: external-dns
+                    key: PDNSADMIN-SECRET
               - name: PDNS_PROTO
                 value: "http"
               - name: PDNS_HOST
@@ -141,14 +140,14 @@
               - name: PDNSADMIN_SQLA_DB_PASSWORD
                 valueFrom:
                   secretKeyRef:
-                    name: mysql-secret
+                    name: external-dns
                     key: MYSQL_PASS
               - name: PDNSADMIN_SQLA_DB_NAME
                 value: "powerdns"
               - name: PDNSADMIN_SQLA_DB_USER
                 value: "powerdns"
               ports:
-              - containerPort: 9091
+              - containerPort: 9191
                 name: pdns-admin-http
                 protocol: TCP
             - name: mysql
@@ -157,7 +156,7 @@
               - name: MYSQL_PASSWORD
                 valueFrom:
                   secretKeyRef:
-                    name: mysql-secret
+                    name: external-dns
                     key: MYSQL_PASS
               - name: MYSQL_DATABASE
                 value: "powerdns"
@@ -166,7 +165,7 @@
               - name: MYSQL_ROOT_PASSWORD
                 valueFrom:
                   secretKeyRef:
-                    name: mysql-secret
+                    name: external-dns
                     key: MYSQL_PASS
       ---
       apiVersion: v1
@@ -198,6 +197,21 @@
         selector:
           app: powerdns
         type: ClusterIP
+      ---
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: powerdns-admin
+        namespace: external-dns
+      spec:
+        ports:
+        - name: pdns-admin-http
+          port: 80
+          protocol: TCP
+          targetPort: pdns-admin-http
+        selector:
+          app: powerdns
+        type: LoadBalancer
       ---
       apiVersion: v1
       kind: ServiceAccount
@@ -270,7 +284,7 @@
               - --set-string
               - domainFilters[0]={{ network_name }}.local
               - --set-string
-              - logLevel=debug
+              - logLevel=info
               - --set-string
               - interval=10s
               - --set-string
@@ -282,7 +296,7 @@
               - name: pdns_apikey
                 valueFrom:
                   secretKeyRef:
-                    name: pdns-secret
+                    name: external-dns
                     key: PDNS_APIKEY
               image: rancher/klipper-helm:v0.1.5
               name: helm
