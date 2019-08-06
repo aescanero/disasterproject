@@ -17,3 +17,9 @@ all:
       vars:
         network_name: demo-network
         network: "192.168.8"
+        ingress:
+        - traefik
+        addons:
+        - externaldns
+        - weave-scope
+        - k8dash

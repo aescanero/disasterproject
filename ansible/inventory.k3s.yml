@@ -21,6 +21,5 @@ all:
         - traefik
         addons:
         - name: externaldns
-        - name: weave-scope
-        - name: k8dash
+
 

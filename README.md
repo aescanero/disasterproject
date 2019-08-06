@@ -139,18 +139,25 @@ all:
       vars:
         network_name: NETWORK_NAME
         network: "VM_NETWORK"
-	k3s_addons:
-        - rio
+        ingress:
         - traefik
-        - k8dash
+        addons:
+        - name: externaldns
+        - name: rio
+        - name: weave-scope
+        - name: k8dash
 ```
 
-Se añade la variable global opcional: k3s_addons para añadir ciertas caracteristicas a la demo como pueden ser acceso al interfaz web de Traefik o instalar el microPaaS RIO
+Se añade la variable global opcional: addons para añadir ciertas caracteristicas a la demo como pueden ser acceso al interfaz web de
+Traefik, los dashboards scope o k8dash, configurar external-dns para poder resolver las rutas de traefik o instalar el microPaaS RIO
 
-* k3s_addons: OPCIONAL, es una lista que puede contener al menos alguno de los siguientes valores:
+* ingress: OPCIONAL, Por defecto traefik
+  * "traefik" para instalar traefix como ingress (endpoind de la plataforma) y acceder a la interfaz web de traefik (http://IP_service_traefik:8080, username admin, password admin)
+
+* addons: OPCIONAL, es una lista que puede contener al menos alguno de los siguientes valores:
   * "k8dash" para activar el dashboard y disponer de visibilidad sobre la plataforma
   * "rio" para instalar el microPaaS RIO junto con k3s
-  * "traefik" para instalar traefix como ingress (endpoind de la plataforma) y acceder a la interfaz web de traefik (http://IP_service_traefik:8080, username admin, password admin)
+  * "externaldns", configura un servicio para resolución DNS de traefik, incluye PowerDNS y PowerDNS-Admin para acceder a PowerDNS y ver que registros existen.
 
 Se ejecuta con 
 ```
