@@ -6,6 +6,16 @@
     path: "{{ ansible_ssh_private_key_file }}"
     mode: '0600'
 
+- name: Wait for start to complete
+  wait_for_connection:
+    connect_timeout: 20
+    sleep: 5
+    delay: 5
+    timeout: 300
+  vars:
+    ansible_host: "{{ vm_ip }}"
+    warn: no
+
 - name: Obtain vm information
   setup:
   vars:
