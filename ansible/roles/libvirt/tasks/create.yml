@@ -49,8 +49,6 @@
     path: /var/lib/libvirt/images/{{ inventory_hostname }}.qcow2
   register: vm_file_details
 
-- debug: var=vm_file_details
-
 - name: Unarchive the image
   command: tar -zxf ~/.images/{{linux_flavor}}.box.tgz --exclude='./Vagrantfile' --exclude='./metadata.json' -C /var/lib/libvirt/images/
   when: vm_file_details.stat.exists == false
@@ -108,12 +106,16 @@
   register: vm_restore
 
 - name: start_vm
-  when: vm_restore.stdout is not defined and vm_status.status is defined and vm_status.status != "running"
+  when: vm_restore.stdout is not defined and ( vm_status.status is not defined or vm_status.status != "running" )
   virt:
     command: start
     name: "{{ inventory_hostname }}"
     uri: "{{ libvirt_uri }}"
 
-- pause:
-    seconds: 20
+- name: Wait to raise vms
+  shell: virsh list |grep "{{ inventory_hostname }}"|grep running
+  register: test
+  retries: 25
+  delay: 10
+  until: test.stdout != ""
 ...
