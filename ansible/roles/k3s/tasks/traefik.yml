@@ -1,11 +1,11 @@
 ---
-- name: Wait to raise k3s master
+- name: Wait to raise Traefik
   run_once: true
   shell: k3s kubectl get pods -n kube-system |grep traefik|grep -v helm|grep Running
-  register: test
+  register: traefik_state
   retries: 25
   delay: 10
-  until: test.stdout != ""
+  until: traefik_state.stdout != ""
 
 - name: Define a traefik ingress
   run_once: true
