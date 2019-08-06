@@ -27,12 +27,6 @@
     dest: /var/lib/libvirt/dnsmasq/{{ network_name }}.status
     content: ""
 
-#- name: "Display"
-#  debug:
-#    var: item
-#  when: item != ""
-#  loop: "{{ networkinuse | json_query('networkinuse.results[*].stdout') }}"
-
 - virt_net:
     command: destroy
     name: "{{ network_name }}"
