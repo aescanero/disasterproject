@@ -74,8 +74,15 @@
   run_once: true
   when: master_name is not defined
 
+- name: Check that the k3s master service exists
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  stat:
+    path: /etc/systemd/system/k3smaster.service
+  register: k3s_master_service_stat
+
 - name: install /etc/systemd/system/k3smaster.service on master
-  when: master_name is defined and master_name.stdout == inventory_hostname and k3s_stat_result.stat.exists == false and k3s_addons is defined and "traefik" not in k3s_addons
+  when: master_name is defined and master_name.stdout == inventory_hostname and k3s_master_service_stat.stat.exists == false and ingress is defined and "traefik" not in ingress
   run_once: true
   copy:
     dest: /etc/systemd/system/k3smaster.service
@@ -93,7 +100,7 @@
       WantedBy=multi-user.target
 
 - name: install /etc/systemd/system/k3smaster.service on master
-  when: master_name is defined and master_name.stdout == inventory_hostname and k3s_stat_result.stat.exists == false and k3s_addons is defined and "traefik" in k3s_addons
+  when: master_name is defined and master_name.stdout == inventory_hostname and k3s_master_service_stat.stat.exists == false and ( ingress is not defined or "traefik" in ingress )
   run_once: true
   copy:
     dest: /etc/systemd/system/k3smaster.service
@@ -121,10 +128,13 @@
     state: started
 
 - name: Wait to raise k3s master
-  when: master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
-  pause:
-    seconds: 20
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  shell: k3s kubectl get nodes |grep "{{ inventory_hostname }}"|grep Ready
+  register: test
+  retries: 25
+  delay: 10
+  until: test.stdout != ""
 
 - name: Creates directory
   when: master_name is defined and master_name.stdout == inventory_hostname and k3s_stat_result.stat.exists == false
@@ -155,7 +165,7 @@
           - name: my-ip-space
             protocol: layer2
             addresses:
-            - 192.168.8.240/28
+            - {{ network }}.240/28
 
 - name: Install MetalLB Load Balancer and create auxiliar system account for administration
   when: master_name is defined and master_name.stdout == inventory_hostname and k3s_stat_result.stat.exists == false
@@ -173,18 +183,21 @@
   shell: k3s kubectl get secret `k3s kubectl get secret|grep ^dash-sa|awk '{print $1}'` -o jsonpath="{.data.token}"|base64 -d
   register: dash_token
 
-- name: Install addons
-  when: k3s_addons is defined and master_name is defined and master_name.stdout == inventory_hostname
+- name: Install ingress
+  when: ingress is defined and master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
   include: "{{ loop_item }}.yml"
-  with_items: "{{ k3s_addons }}"
+  with_items: "{{ ingress }}"
   loop_control:
     loop_var: loop_item
 
-- name: Wait to raise k3s master
+- name: Install addons
+  when: addons is defined and master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
-  pause:
-    seconds: 20
+  include: "{{ loop_item.name }}.yml"
+  with_items: "{{ addons }}"
+  loop_control:
+    loop_var: loop_item
 
 - name: Load k3s token into variable
   when: master_name is defined and master_name.stdout == inventory_hostname
@@ -193,8 +206,14 @@
   register: token
   run_once: true
 
+- name: Check that the k3s node service exists
+  when: master_name is defined and master_name.stdout != inventory_hostname
+  stat:
+    path: /etc/systemd/system/k3s.service
+  register: k3s_node_service_stat
+
 - name: install /etc/systemd/system/k3s.service on nodes
-  when: master_name is defined and master_name.stdout != inventory_hostname and k3s_stat_result.stat.exists == false
+  when: master_name is defined and master_name.stdout != inventory_hostname and k3s_node_service_stat.stat.exists == false
   copy:
     dest: /etc/systemd/system/k3s.service
     content: |
