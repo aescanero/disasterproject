@@ -32,7 +32,7 @@
       apiVersion: v1
       kind: Secret
       metadata:
-        name: external-dns
+        name: s-external-dns
         namespace: external-dns
       type: Opaque
       data:
@@ -66,7 +66,7 @@
               - name: PDNS_api_key
                 valueFrom:
                   secretKeyRef:
-                    name: external-dns
+                    name: s-external-dns
                     key: PDNS_APIKEY
               - name: PDNS_master
                 value: "yes"
@@ -81,7 +81,7 @@
               - name: PDNS_webserver_password
                 valueFrom:
                   secretKeyRef:
-                    name: external-dns
+                    name: s-external-dns
                     key: PDNS_APIKEY
               - name: PDNS_version_string
                 value: "anonymous"
@@ -98,7 +98,7 @@
               - name: MYSQL_ENV_MYSQL_PASSWORD
                 valueFrom:
                   secretKeyRef:
-                    name: external-dns
+                    name: s-external-dns
                     key: MYSQL_PASS
               - name: MYSQL_ENV_MYSQL_DATABASE
                 value: "powerdns"
@@ -107,7 +107,7 @@
               - name: MYSQL_ENV_MYSQL_ROOT_PASSWORD
                 valueFrom:
                   secretKeyRef:
-                    name: external-dns
+                    name: s-external-dns
                     key: MYSQL_PASS
               ports:
               - containerPort: 53
@@ -122,13 +122,13 @@
               - name: PDNS_API_KEY
                 valueFrom:
                   secretKeyRef:
-                    name: external-dns
+                    name: s-external-dns
                     key: PDNS_APIKEY
               - name: PDNSADMIN_SECRET_KEY
                 valueFrom:
                   secretKeyRef:
-                    name: external-dns
-                    key: PDNSADMIN-SECRET
+                    name: s-external-dns
+                    key: PDNSADMIN_SECRET
               - name: PDNS_PROTO
                 value: "http"
               - name: PDNS_HOST
@@ -140,7 +140,7 @@
               - name: PDNSADMIN_SQLA_DB_PASSWORD
                 valueFrom:
                   secretKeyRef:
-                    name: external-dns
+                    name: s-external-dns
                     key: MYSQL_PASS
               - name: PDNSADMIN_SQLA_DB_NAME
                 value: "powerdns"
@@ -156,7 +156,7 @@
               - name: MYSQL_PASSWORD
                 valueFrom:
                   secretKeyRef:
-                    name: external-dns
+                    name: s-external-dns
                     key: MYSQL_PASS
               - name: MYSQL_DATABASE
                 value: "powerdns"
@@ -165,7 +165,7 @@
               - name: MYSQL_ROOT_PASSWORD
                 valueFrom:
                   secretKeyRef:
-                    name: external-dns
+                    name: s-external-dns
                     key: MYSQL_PASS
       ---
       apiVersion: v1
@@ -296,7 +296,7 @@
               - name: pdns_apikey
                 valueFrom:
                   secretKeyRef:
-                    name: external-dns
+                    name: s-external-dns
                     key: PDNS_APIKEY
               image: rancher/klipper-helm:v0.1.5
               name: helm
