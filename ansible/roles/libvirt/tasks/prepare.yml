@@ -3,7 +3,7 @@
   run_once: true
   virt_net:
     state: active
-    name: "{{ network_name }}"
+    name: "{{ domain.split('.')[0] }}"
   register: net_ok
   ignore_errors: yes
   delegate_to: localhost
@@ -16,7 +16,7 @@
   run_once: true
   virt_net:
     state: active
-    name: "{{ network_name }}"
+    name: "{{ domain.split('.')[0] }}"
   delegate_to: localhost
 
 - name: Creates directory

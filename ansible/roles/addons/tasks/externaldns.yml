@@ -61,7 +61,7 @@
               lifecycle:
                 postStart:
                   exec:
-                    command: ["/bin/sh", "-c", "sleep 20 ; pdnsutil create-zone {{ network_name }}.local"]
+                    command: ["/bin/sh", "-c", "sleep 20 ; pdnsutil create-zone {{ domain }}"]
               env:
               - name: PDNS_api_key
                 valueFrom:
@@ -90,9 +90,9 @@
               - name: PDNS_soa_minimum_ttl
                 value: "1200"
               - name: PDNS_default_soa_name
-                value: "ns1.{{ network_name }}.local"
+                value: "ns1.{{ domain }}"
               - name: PDNS_default_soa_mail
-                value: "hostmaster.{{ network_name }}.local"
+                value: "hostmaster.{{ domain }}"
               - name: MYSQL_ENV_MYSQL_HOST
                 value: "127.0.0.1"
               - name: MYSQL_ENV_MYSQL_PASSWORD
@@ -247,7 +247,7 @@
               - --set-string
               - provider=pdns
               - --set-string
-              - pdns.apiUrl=http://powerdns-api.external-dns.svc.{{ network_name }}.local
+              - pdns.apiUrl=http://powerdns-api.external-dns.svc.{{ domain }}
               - --set-string
               - pdns.apiPort=8081
               - --set-string
@@ -255,7 +255,7 @@
               - --set-string
               - txtOwnerId=external-dns
               - --set-string
-              - domainFilters[0]={{ network_name }}.local
+              - domainFilters[0]={{ domain }}
               - --set-string
               - logLevel=info
               - --set-string

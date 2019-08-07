@@ -9,13 +9,13 @@
 
 - name: destroy libvirt network
   virt_net:
-    name: "{{ network_name }}"
+    name: "{{ domain.split('.')[0] }}"
     state: absent
     uri: "{{ libvirt_uri }}"
 
 - name: ensure libvirt network is present
   virt_net:
-    name: "{{ network_name }}"
+    name: "{{ domain.split('.')[0] }}"
     state: present
     xml: "{{ lookup('template', 'net.xml.j2') }}"
     uri: "{{ libvirt_uri }}"

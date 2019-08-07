@@ -22,7 +22,7 @@
       <target dev='vda' bus='virtio'/>
     </disk>
     <interface type='network'>
-      <source network='{{ network_name }}'/>
+      <source network='{{ domain.split(".")[0] }}'/>
       <model type='virtio'/>
     </interface>
     <console type='pty'>

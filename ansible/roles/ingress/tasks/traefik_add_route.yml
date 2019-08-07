@@ -5,7 +5,7 @@
     content: |
       spec:
         rules:
-        - host: {{service}}.{{ network_name }}.local
+        - host: {{service}}.{{ domain }}
           http:
             paths:
             - path: {{ route }}

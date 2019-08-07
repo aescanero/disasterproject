@@ -4,6 +4,6 @@
 
 - name: remove DHCP Lease
   shell: |
-    virsh net-update {{ network_name }} delete ip-dhcp-host "<host ip='{{ vm_ip }}'/>" --live
+    virsh net-update {{ domain.split(".")[0] }} delete ip-dhcp-host "<host ip='{{ vm_ip }}'/>" --live
   ignore_errors: yes
 ...

@@ -8,5 +8,5 @@ all:
           vm_ip: "192.168.8.2"
           linux_flavor: "debian"
       vars:
-        network_name: demo-network
+        domain: disasterproject.com
         network: "192.168.8"

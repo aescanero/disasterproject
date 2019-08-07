@@ -15,7 +15,7 @@ all:
           linux_flavor: "debian"
           container_engine: "k3s"
       vars:
-        network_name: demo-network
+        domain: disasterproject.com
         network: "192.168.8"
         ingress:
         - traefik

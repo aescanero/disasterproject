@@ -6,7 +6,7 @@
   run_once: true
 
 - name: get networks used by vms
-  shell: virsh domiflist --domain {{ item }}|grep network|grep {{ network_name }}
+  shell: virsh domiflist --domain {{ item }}|grep network|grep {{ domain.split(".")[0] }}
   with_items: "{{ all_vms.list_vms }} "
   when: interfaces is not defined or interfaces != ""
   run_once: true
@@ -24,19 +24,19 @@
 - name: Clear all dhcp leases
   run_once: true
   copy:
-    dest: /var/lib/libvirt/dnsmasq/{{ network_name }}.status
+    dest: /var/lib/libvirt/dnsmasq/{{ domain.split(".")[0] }}.status
     content: ""
 
 - virt_net:
     command: destroy
-    name: "{{ network_name }}"
+    name: "{{ domain.split('.')[0] }}"
   run_once: true
   ignore_errors: yes
   when: networkinuse.results|length == 0
 
 - virt_net:
     command: undefine
-    name: "{{ network_name }}"
+    name: "{{ domain.split('.')[0] }}"
   run_once: true
   ignore_errors: yes
   when: networkinuse.results|length == 0

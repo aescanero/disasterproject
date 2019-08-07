@@ -15,6 +15,6 @@ all:
           linux_flavor: "debian"
           container_engine: "podman"
       vars:
-        network_name: demo-network
+        domain: disasterproject.com
         network: "192.168.8"
 

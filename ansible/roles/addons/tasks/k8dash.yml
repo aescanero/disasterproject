@@ -58,7 +58,7 @@
 #    content: |
 #      spec:
 #        rules:
-#        - host: k8dash.{{ network_name }}.local
+#        - host: k8dash.{{ domain }}
 #          http:
 #            paths:
 #            - path: /
@@ -90,6 +90,6 @@
   debug:
     msg: |
       Things left to do:
-        - Access to https://k8dash.{{ network_name }}.local
+        - Access to https://k8dash.{{ domain }}
         - Use the next token to access dashboard: {{k8dash_token.stdout}}
 ...

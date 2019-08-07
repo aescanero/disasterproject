@@ -64,7 +64,7 @@
           traefik.ingress.kubernetes.io/redirect-permanent: "true"
       spec:
         rules:
-        - host: traefik-ui.{{ network_name }}.local
+        - host: traefik-ui.{{ domain }}
           http:
             paths:
             - path: /

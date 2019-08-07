@@ -101,7 +101,7 @@
       Description=k3s
       
       [Service]
-      ExecStart=/usr/bin/k3s server --cluster-domain {{ network_name }}.local --no-deploy servicelb --no-deploy traefik --bind-address {{ vm_ip }}
+      ExecStart=/usr/bin/k3s server --cluster-domain {{ domain }} --no-deploy servicelb --no-deploy traefik --bind-address {{ vm_ip }}
       Restart=always
       StartLimitInterval=0
       RestartSec=10
@@ -119,7 +119,7 @@
       Description=k3s
       
       [Service]
-      ExecStart=/usr/bin/k3s server --cluster-domain {{ network_name }}.local --no-deploy servicelb --bind-address {{ vm_ip }}
+      ExecStart=/usr/bin/k3s server --cluster-domain {{ domain }} --no-deploy servicelb --bind-address {{ vm_ip }}
       Restart=always
       StartLimitInterval=0
       RestartSec=10

@@ -2,17 +2,17 @@
 - name: ensure libvirt network is present
   ignore_errors: yes
   virt_net:
-    name: "{{ network_name }}"
+    name: "{{ domain.split('.')[0] }}"
     state: active
 
 - name: getMAC
-  shell: virsh domiflist --domain "{{ inventory_hostname }}" | grep "{{ network_name }}" | awk '{print $5}'
+  shell: virsh domiflist --domain "{{ inventory_hostname }}" | grep "{{ domain.split('.')[0] }}" | awk '{print $5}'
   register: mac
 
 - virt_net:
-    name: '{{ network_name }}'
+    name: '{{ domain.split(".")[0] }}'
     command: modify
-    xml: "<host mac='{{mac.stdout}}' name='{{ inventory_hostname }}.{{ network_name }}.local' ip='{{ vm_ip }}'/>"
+    xml: "<host mac='{{mac.stdout}}' name='{{ inventory_hostname }}.{{ domain }}' ip='{{ vm_ip }}'/>"
 
 - name: restore vm
   shell: virsh restore /var/lib/libvirt/qemu/save/{{ inventory_hostname }}.save --running
