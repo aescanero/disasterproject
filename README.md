@@ -21,7 +21,7 @@ all:
           vm_ip: "IP_VM_MACHINE_NAME2"
           linux_flavor: "debian|centos"
       vars:
-        network_name: NETWORK_NAME
+        domain: FQDN_DOMAIN
         network: "VM_NETWORK"
 ```
 
@@ -86,7 +86,7 @@ all:
           linux_flavor: "debian|centos"
           container_engine: "kubernetes"
       vars:
-        network_name: NETWORK_NAME
+        domain: FQDN_DOMAIN
         network: "VM_NETWORK"
 ```
 
@@ -137,7 +137,7 @@ all:
           linux_flavor: "debian|centos"
           container_engine: "k3s"
       vars:
-        network_name: NETWORK_NAME
+        domain: FQDN_DOMAIN
         network: "VM_NETWORK"
         ingress:
         - traefik
@@ -156,6 +156,7 @@ Traefik, los dashboards scope o k8dash, configurar external-dns para poder resol
 
 * addons: OPCIONAL, es una lista que puede contener al menos alguno de los siguientes valores:
   * "k8dash" para activar el dashboard y disponer de visibilidad sobre la plataforma
+  * "weave-scope" un potente dashboard que relaciona los elementos de la plataforma
   * "rio" para instalar el microPaaS RIO junto con k3s
   * "externaldns", configura un servicio para resolución DNS de traefik, incluye PowerDNS y PowerDNS-Admin para acceder a PowerDNS y ver que registros existen.
 

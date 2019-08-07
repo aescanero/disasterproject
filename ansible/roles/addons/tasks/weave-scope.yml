@@ -43,6 +43,9 @@
             serviceAccountName: helm-install-sa
             restartPolicy: OnFailure
 
+- name: Configure Service
+  shell: kubectl apply -f {{ ansible_env.HOME }}/weave-scope.yml
+
 - name: Modify ingress route
   when: addons_item.route is defined
   include_role:

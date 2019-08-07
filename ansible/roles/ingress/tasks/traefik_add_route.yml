@@ -13,6 +13,10 @@
                 serviceName: {{ service }}
                 servicePort: {{ externalport }}
 
+
+
+
 - name: Apply Patch
-  shell: kubectl patch ingress --type='merge' -n kube-system traefik -p "$(cat {{ ansible_env.HOME }}/{{service}}.ingress.patch.yml)"
+  shell: kubectl patch ingress --type json -n kube-system traefik -p '[{"op":"add","path":"/spec/rules/-","value":{"host":"{{service}}.{{ domain }}","http":{"paths":[{"backend":{"serviceName":"{{service}}","servicePort":{{ externalport }}},"path":"{{ route }}"}]}}}]'
+#  shell: kubectl patch ingress --type='merge' -n kube-system traefik -p "$(cat {{ ansible_env.HOME }}/{{service}}.ingress.patch.yml)"
 ...

@@ -9,6 +9,7 @@
 
 - name: Remove service
   shell: kubectl get -n kube-system service k8dash && kubectl delete -n kube-system service k8dash
+  ignore_errors: yes
 
 - name: Configure Dashboard
   shell: kubectl apply -f "https://raw.githubusercontent.com/herbrandson/k8dash/master/kubernetes-k8dash.yaml"
