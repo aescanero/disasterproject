@@ -1,7 +1,46 @@
 ---
+- name: install Traefik
+  run_once: true
+  when: container_engine != "k3s"
+  copy:
+    dest: "{{ ansible_env.HOME }}/traefik.yml"
+    content: |
+      ---
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: helm-install-traefik
+        namespace: kube-system
+      spec:
+        backoffLimit: 1000
+        completions: 1
+        parallelism: 1
+        template:
+          metadata:
+            labels:
+              jobname: helm-install-traefik
+          spec:
+            containers:
+            - args:
+              - install
+              - --namespace
+              - kube-system
+              - --name
+              - traefik
+              - --set-string
+              - dashboard.enabled=true
+              - --set-string
+              - dashboard.auth.basic.test='$apr1$H6uskkkW$IgXLP6ewTrSuBkTrqE8wj/'
+              - stable/traefik
+              image: rancher/klipper-helm:v0.1.5
+              name: helm
+            serviceAccount: helm-install-sa
+            serviceAccountName: helm-install-sa
+            restartPolicy: OnFailure
+
 - name: Wait to raise Traefik
   run_once: true
-  shell: k3s kubectl get pods -n kube-system |grep traefik|grep -v helm|grep Running
+  shell: kubectl get pods -n kube-system |grep traefik|grep -v helm|grep Running
   register: traefik_state
   retries: 25
   delay: 10
@@ -98,17 +137,17 @@
 
 - name: Configure traefik deployment
   run_once: true
-  shell: k3s kubectl patch deployment -n kube-system traefik -p "$(cat {{ ansible_env.HOME }}/traefik.deploy.patch.yml)"
+  shell: kubectl patch deployment -n kube-system traefik -p "$(cat {{ ansible_env.HOME }}/traefik.deploy.patch.yml)"
 
 - name: Configure traefik configmap
   run_once: true
-  shell: k3s kubectl patch configmap -n kube-system traefik -p "$(cat {{ ansible_env.HOME }}/traefik.cm.patch.yml)"
+  shell: kubectl patch configmap -n kube-system traefik -p "$(cat {{ ansible_env.HOME }}/traefik.cm.patch.yml)"
 
 - name: Configure traefik service
   run_once: true
-  shell: k3s kubectl patch service -n kube-system traefik -p "$(cat {{ ansible_env.HOME }}/traefik.svc.patch.yml)"
+  shell: kubectl patch service -n kube-system traefik -p "$(cat {{ ansible_env.HOME }}/traefik.svc.patch.yml)"
 
 - name: Configure traefik ingress
   run_once: true
-  shell: k3s kubectl apply -f {{ ansible_env.HOME }}/traefik-ingress.yml
+  shell: kubectl apply -f {{ ansible_env.HOME }}/traefik-ingress.yml
 ...

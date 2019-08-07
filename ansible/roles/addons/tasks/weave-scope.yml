@@ -1,0 +1,55 @@
+---
+- name: Install weave-scope helm with klipper-helm
+  run_once: true
+  copy:
+    dest: "{{ ansible_env.HOME }}/weave-scope.yml"
+    content: |
+      ---
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: weave-scope
+      ---
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: helm-install-weave-scope
+        namespace: kube-system
+      spec:
+        backoffLimit: 1000
+        completions: 1
+        parallelism: 1
+        template:
+          metadata:
+            labels:
+              jobname: helm-install-weave-scope
+          spec:
+            containers:
+            - args:
+              - install
+              - --namespace
+              - helm-weave-scope
+              - --name
+              - helm-weave-scope
+              - --set-string
+              - service.type=LoadBalancer
+              - stable/weave-scope 
+              env:
+              - name: NAME
+                value: helm-weave-scope
+              image: rancher/klipper-helm:v0.1.5
+              name: helm
+            serviceAccount: helm-install-sa
+            serviceAccountName: helm-install-sa
+            restartPolicy: OnFailure
+
+- name: Modify ingress route
+  when: addons_item.route is defined
+  include_role:
+    name: ingress
+    tasks_from: ingress_add_route
+  vars:
+    service: helm-weave-scope-weave-scope
+    route: "/"
+    externalport: 80
+...

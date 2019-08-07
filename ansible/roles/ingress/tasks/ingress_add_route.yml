@@ -1,0 +1,15 @@
+---
+- name: Add route to default ingress
+  when: ingress is not defined
+  include: traefik_add_route.yml
+  vars:
+    ingress_item:
+      name: "traefik"
+
+- name: Install ingress
+  when: ingress is defined
+  include: "{{ ingress_item }}_add_route.yml"
+  with_items: "{{ ingress }}"
+  loop_control:
+    loop_var: ingress_item
+...

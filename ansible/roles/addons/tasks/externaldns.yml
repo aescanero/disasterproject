@@ -212,37 +212,10 @@
         selector:
           app: powerdns
         type: LoadBalancer
-      ---
-      apiVersion: v1
-      kind: ServiceAccount
-      metadata:
-        name: helm-installer-external-dns
-        namespace: external-dns
-      ---
-      apiVersion: rbac.authorization.k8s.io/v1beta1
-      kind: ClusterRoleBinding
-      metadata:
-        name: helm-installer-external-dns
-      roleRef:
-        apiGroup: rbac.authorization.k8s.io
-        kind: ClusterRole
-        name: cluster-admin
-      subjects:
-      - kind: ServiceAccount
-        name: helm-installer-external-dns
-        namespace: external-dns
 
 - name: Install External-DNS with PowerDNS
   run_once: true
-  shell: "{{ item }}"
-  with_items:
-    - k3s kubectl apply -f {{ ansible_env.HOME }}/powerdns.yml
-
-- name: Obtain helm account token for external-dns
-  when: master_name is defined and master_name.stdout == inventory_hostname
-  run_once: true
-  shell: k3s kubectl get secret -n external-dns|grep ^helm-installer-external-dns|awk '{print $1}'
-  register: helm_token_external_dns
+  shell: kubectl apply -f {{ ansible_env.HOME }}/powerdns.yml
 
 - name: Install external-dns helm with klipper-helm
   run_once: true
@@ -254,7 +227,7 @@
       kind: Job
       metadata:
         name: helm-install-external-dns
-        namespace: external-dns
+        namespace: kube-system
       spec:
         backoffLimit: 1000
         completions: 1
@@ -300,25 +273,26 @@
                     key: PDNS_APIKEY
               image: rancher/klipper-helm:v0.1.5
               name: helm
-            serviceAccount: helm-installer-external-dns
-            serviceAccountName: helm-installer-external-dns
+            serviceAccount: helm-install-sa
+            serviceAccountName: helm-install-sa
             restartPolicy: OnFailure
 
 - name: Install External-DNS with PowerDNS
   run_once: true
   shell: "{{ item }}"
   with_items:
-    - k3s kubectl apply -f {{ ansible_env.HOME }}/external-dns.yml
+    - kubectl -n external-dns get secret s-external-dns -o yaml|grep -v namespace|kubectl -n kube-system apply -f -
+    - kubectl apply -f {{ ansible_env.HOME }}/external-dns.yml
 
 - name: Wait to raise external-dns
-  shell: k3s kubectl get pods -n external-dns |grep ^external-dns|grep Running
+  shell: kubectl get pods -n external-dns |grep ^external-dns|grep Running
   register: test
   retries: 25
   delay: 10
   until: test.stdout != ""
 
 - name: Obtain dashboard IP
-  shell: k3s kubectl get service -n external-dns endpoint-dns -o jsonpath='{.status.loadBalancer.ingress[].ip}'
+  shell: kubectl get service -n external-dns endpoint-dns -o jsonpath='{.status.loadBalancer.ingress[].ip}'
   register: externaldns_ip
 
 - name: Make sure old dns conf is not in the resolv.conf configuration

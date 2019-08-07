@@ -1,0 +1,18 @@
+---
+- name: Check that ingress is installed
+  stat:
+    path: "{{ ansible_env.HOME }}/.{{ ingress_item }}"
+  register: ingress_stat_result
+
+- name: install ingress
+  when: ingress_stat_result.stat.exists == false
+  include: "{{ ingress_item }}.yml"
+
+- name: Mark ingress as intalled
+  when: ingress_stat_result.stat.exists == false
+  run_once: true
+  copy:
+    dest: "{{ ansible_env.HOME }}/.{{ ingress_item }}"
+    content: |
+      installed
+...

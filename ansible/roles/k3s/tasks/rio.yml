@@ -1,9 +1,0 @@
----
-- name: Deploy RIO
-  when: master_name is defined and master_name.stdout == inventory_hostname
-  run_once: true
-  shell: "{{ item }}"
-  with_items:
-    - curl -sfL https://get.rio.io | sh -
-    - rio install
-...

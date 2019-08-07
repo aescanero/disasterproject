@@ -74,6 +74,16 @@
   run_once: true
   when: master_name is not defined
 
+- name: Create kubectl alias
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  copy:
+    dest: "/usr/bin/kubectl"
+    mode: '0755'
+    content: |
+      #!/bin/sh
+      /usr/bin/k3s kubectl "$@"
+
 - name: Check that the k3s master service exists
   when: master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
@@ -130,7 +140,7 @@
 - name: Wait to raise k3s master
   run_once: true
   when: master_name is defined and master_name.stdout == inventory_hostname
-  shell: k3s kubectl get nodes |grep "{{ inventory_hostname }}"|grep Ready
+  shell: kubectl get nodes |grep "{{ inventory_hostname }}"|grep Ready
   register: test
   retries: 25
   delay: 10
@@ -143,7 +153,7 @@
     path: ~/.kube
     state: directory
 
-- name: Configure config for k3s kubectl
+- name: Configure config for kubectl
   when: master_name is defined and master_name.stdout == inventory_hostname and k3s_stat_result.stat.exists == false
   run_once: true
   shell: cp -i /etc/rancher/k3s/k3s.yaml "{{ ansible_env.HOME }}"/.kube/config
@@ -167,37 +177,57 @@
             addresses:
             - {{ network }}.240/28
 
-- name: Install MetalLB Load Balancer and create auxiliar system account for administration
+- name: Create auxiliar system account for administration
   when: master_name is defined and master_name.stdout == inventory_hostname and k3s_stat_result.stat.exists == false
   run_once: true
   shell: "{{ item }}"
   with_items:
-    - k3s kubectl apply -f "https://raw.githubusercontent.com/danderson/metallb/master/manifests/metallb.yaml"
-    - k3s kubectl apply -f {{ ansible_env.HOME }}/pool.yml
-    - k3s kubectl create serviceaccount dash-sa
-    - k3s kubectl create clusterrolebinding dash-sa --clusterrole=cluster-admin --serviceaccount=default:dash-sa
+    - kubectl create serviceaccount -n kube-system helm-install-sa --dry-run -o yaml | kubectl apply -f -
+    - kubectl create clusterrolebinding helm-install-sa --clusterrole=cluster-admin --serviceaccount=kube-system:helm-install-sa --dry-run -o yaml | kubectl apply -f -
 
-- name: Obtain system account Token
-  when: master_name is defined and master_name.stdout == inventory_hostname
+- name: Install MetalLB Load Balancer
+  when: master_name is defined and master_name.stdout == inventory_hostname and k3s_stat_result.stat.exists == false
   run_once: true
-  shell: k3s kubectl get secret `k3s kubectl get secret|grep ^dash-sa|awk '{print $1}'` -o jsonpath="{.data.token}"|base64 -d
-  register: dash_token
+  shell: "{{ item }}"
+  with_items:
+    - kubectl apply -f "https://raw.githubusercontent.com/danderson/metallb/master/manifests/metallb.yaml"
+    - kubectl apply -f {{ ansible_env.HOME }}/pool.yml
 
+#- name: Obtain helm installer system account Token
+#  when: master_name is defined and master_name.stdout == inventory_hostname
+#  run_once: true
+#  shell: kubectl get secret `kubectl get secret|grep ^helm-install-sa|awk '{print $1}'` -o jsonpath="{.data.token}"|base64 -d
+#  register: helm-install-sa-token
+
+- name: Install default ingress
+  when: ingress is not defined and master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  include_role:
+    name: ingress
+    tasks_from: main
+  vars:
+    ingress_item:
+      name: "traefik"
+  
 - name: Install ingress
   when: ingress is defined and master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
-  include: "{{ loop_item }}.yml"
+  include_role:
+    name: ingress
+    tasks_from: main
   with_items: "{{ ingress }}"
   loop_control:
-    loop_var: loop_item
+    loop_var: ingress_item
 
 - name: Install addons
   when: addons is defined and master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
-  include: "{{ loop_item.name }}.yml"
+  include_role:
+    name: addons
+    tasks_from: main
   with_items: "{{ addons }}"
   loop_control:
-    loop_var: loop_item
+    loop_var: addons_item
 
 - name: Load k3s token into variable
   when: master_name is defined and master_name.stdout == inventory_hostname

@@ -20,6 +20,9 @@ all:
         ingress:
         - traefik
         addons:
-        - externaldns
-        - weave-scope
-        - k8dash
+        - name: externaldns
+        - name: k8dash
+          external: true
+          route: true
+        - name: weave-scope
+          route: true

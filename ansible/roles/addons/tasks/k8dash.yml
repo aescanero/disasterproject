@@ -1,0 +1,95 @@
+---
+- name: Create k8dash sa
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  shell: "{{ item }}"
+  with_items:
+    - kubectl create serviceaccount k8dash-sa --dry-run -o yaml | kubectl apply -f -
+    - kubectl create clusterrolebinding k8dash-sa --clusterrole=cluster-admin --serviceaccount=default:k8dash-sa --dry-run -o yaml | kubectl apply -f -
+
+- name: Remove service
+  shell: kubectl get -n kube-system service k8dash && kubectl delete -n kube-system service k8dash
+
+- name: Configure Dashboard
+  shell: kubectl apply -f "https://raw.githubusercontent.com/herbrandson/k8dash/master/kubernetes-k8dash.yaml"
+
+- name: Wait to raise k8dash
+  shell: kubectl get pods -n kube-system |grep k8dash|grep Running
+  register: test
+  retries: 25
+  delay: 10
+  until: test.stdout != ""
+
+- name: Define a service for Dashboard
+  copy:
+    dest: "{{ ansible_env.HOME }}/service.yml"
+    content: |
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: k8dash
+        namespace: kube-system
+      spec:
+        ports:
+        - name: http
+          port: 80
+          protocol: TCP
+          targetPort: 4654
+        selector:
+          k8s-app: k8dash
+        type: LoadBalancer
+
+- name: Configure Service
+  shell: kubectl apply -f {{ ansible_env.HOME }}/service.yml
+
+- name: Modify ingress route
+  when: addons_item.route is defined
+  include_role:
+    name: ingress
+    tasks_from: ingress_add_route
+  vars:
+    service: k8dash
+    route: "/"
+    externalport: 443
+
+#- name: Define a patch for traefik ingress
+#  copy:
+#    dest: "{{ ansible_env.HOME }}/traefik.k8dash.ingress.patch.yml"
+#    content: |
+#      spec:
+#        rules:
+#        - host: k8dash.{{ network_name }}.local
+#          http:
+#            paths:
+#            - path: /
+#              backend:
+#                serviceName: k8dash
+#                servicePort: 80
+
+- name: Obtain dashboard IP
+  when: addons_item.external is defined
+  shell: kubectl get service -n kube-system k8dash -o jsonpath='{.status.loadBalancer.ingress[].ip}'
+  register: k8dash_ip
+
+- name: Obtain dashboard Token
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  shell: kubectl get secret `kubectl get secret|grep ^k8dash|awk '{print $1}'` -o jsonpath="{.data.token}"|base64 -d
+  register: k8dash_token
+
+- name: HOW TO ACCESS TO DASHBOARD
+  when: addons_item.external is defined
+  debug:
+    msg: |
+      Things left to do:
+        - Access to https://{{k8dash_ip.stdout}}
+        - Use the next token to access dashboard: {{k8dash_token.stdout}}
+
+- name: HOW TO ACCESS TO DASHBOARD
+  when: addons_item.route is defined
+  debug:
+    msg: |
+      Things left to do:
+        - Access to https://k8dash.{{ network_name }}.local
+        - Use the next token to access dashboard: {{k8dash_token.stdout}}
+...
