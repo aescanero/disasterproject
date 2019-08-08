@@ -1,0 +1,111 @@
+---
+- name: Create kubeview sa
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  shell: "{{ item }}"
+  with_items:
+    - kubectl create namespace kubview --dry-run -o yaml | kubectl apply -f -
+    - 'curl -s https://raw.githubusercontent.com/benc-uk/kubeview/master/deployments/service-account.yaml|grep -v "namespace:"| kubectl apply -n kubeview -f -'
+
+- name: Install kubeview
+  copy:
+    dest: "{{ ansible_env.HOME }}/kubeview.yml"
+    content: |
+      ---
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: kubeview
+        namespace: kubeview
+      spec:
+        ports:
+        - name: http
+          port: 80
+          protocol: TCP
+          targetPort: 8000
+        selector:
+          app: kubeview
+        type: ClusterIP
+      ---
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        labels:
+          app: kubeview
+        name: kubeview
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: kubeview
+        template:
+          metadata:
+            labels:
+              app: kubeview
+          spec:
+            serviceAccountName: kubeview
+            containers:
+            - image: bencuk/kubeview:latest
+              name: kubeview
+              ports:
+              - containerPort: 8000
+
+- name: Configure Service
+  shell: kubectl apply -n kubeview -f {{ ansible_env.HOME }}/kubeview.yml
+
+- name: Wait to raise kubeview
+  shell: kubectl get pods -n kubeview |grep kubeview|grep Running
+  register: test
+  retries: 25
+  delay: 10
+  until: test.stdout != ""
+
+- name: Modify external LoadBalacer
+  when: addons_item.publish is defined and addons_item.publish['external'] is defined
+  include_role:
+    name: services
+    tasks_from: external
+  vars:
+    service: kubeview
+    externalport: 80
+    internalport: 8000
+    protocol: "TCP"
+    namespace: "kubeview"
+    label: "app"
+
+- name: Modify ingress route
+  when: addons_item.publish is defined and addons_item.publish['route'] is defined
+  include_role:
+    name: ingress
+    tasks_from: ingress_add_route
+  vars:
+    service: kubeview
+    route: "/"
+    internalport: 80
+    namespace: "kubeview"
+
+- name: Obtain dashboard IP
+  when: addons_item.publish is defined and addons_item.publish['external'] is defined
+  shell: kubectl get service -n kube-system kubeview -o jsonpath='{.status.loadBalancer.ingress[].ip}'
+  register: kubeview_ip
+
+- name: Obtain dashboard Token
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  shell: kubectl get secret `kubectl get secret|grep ^kubeview|awk '{print $1}'` -o jsonpath="{.data.token}"|base64 -d
+  register: kubeview_token
+
+- name: HOW TO ACCESS TO DASHBOARD
+  when: addons_item.publish is defined and addons_item.publish['external'] is defined
+  debug:
+    msg: |
+      Things left to do:
+        - Access to https://{{kubeview_ip.stdout}}
+        - Use the next token to access dashboard: {{kubeview_token.stdout}}
+
+- name: HOW TO ACCESS TO DASHBOARD
+  when: addons_item.publish is defined and addons_item.publish['route'] is defined
+  debug:
+    msg: |
+      Things left to do:
+        - Access to https://kubeview.{{ domain }}
+        - Use the next token to access dashboard: {{kubeview_token.stdout}}
+...

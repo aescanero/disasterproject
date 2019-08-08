@@ -219,16 +219,6 @@
   loop_control:
     loop_var: ingress_item
 
-- name: Install addons
-  when: addons is defined and master_name is defined and master_name.stdout == inventory_hostname
-  run_once: true
-  include_role:
-    name: addons
-    tasks_from: main
-  with_items: "{{ addons }}"
-  loop_control:
-    loop_var: addons_item
-
 - name: Load k3s token into variable
   when: master_name is defined and master_name.stdout == inventory_hostname
   slurp:
@@ -272,4 +262,14 @@
   run_once: true
   pause:
     seconds: 20
+
+- name: Install addons
+  when: addons is defined and master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  include_role:
+    name: addons
+    tasks_from: main
+  with_items: "{{ addons }}"
+  loop_control:
+    loop_var: addons_item
 ...

@@ -1,18 +1,19 @@
 ---
-- name: Install weave-scope helm with klipper-helm
+#https://hub.kubeapps.com/charts/stable/kube-ops-view
+- name: Install kube-ops-view helm with klipper-helm
   copy:
-    dest: "{{ ansible_env.HOME }}/weave-scope.yml"
+    dest: "{{ ansible_env.HOME }}/kube-ops-view.yml"
     content: |
       ---
       apiVersion: v1
       kind: Namespace
       metadata:
-        name: weave-scope
+        name: kube-ops-view
       ---
       apiVersion: batch/v1
       kind: Job
       metadata:
-        name: helm-install-weave-scope
+        name: helm-install-kube-ops-view
         namespace: kube-system
       spec:
         backoffLimit: 1000
@@ -21,18 +22,16 @@
         template:
           metadata:
             labels:
-              jobname: helm-install-weave-scope
+              jobname: helm-install-kube-ops-view
           spec:
             containers:
             - args:
               - install
               - --namespace
-              - weave-scope
+              - kube-ops-view
               - --name
-              - weave-scope
-              - --set-string
-              - service.type=LoadBalancer
-              - stable/weave-scope 
+              - kube-ops-view
+              - stable/kube-ops-view
               image: rancher/klipper-helm:v0.1.5
               name: helm
             serviceAccount: helm-install-sa
@@ -40,7 +39,7 @@
             restartPolicy: OnFailure
 
 - name: Configure Service
-  shell: kubectl apply -f {{ ansible_env.HOME }}/weave-scope.yml
+  shell: kubectl apply -f {{ ansible_env.HOME }}/kube-ops-view.yml
 
 - name: Modify ingress route
   when: addons_item.publish is defined and addons_item.publish['route'] is defined
@@ -48,8 +47,9 @@
     name: ingress
     tasks_from: ingress_add_route
   vars:
-    service: weave-scope-weave-scope
+    service: kube-ops-view-kube-ops-view
     route: "/"
     internalport: 80
-    namespace: weave-scope
+    namespace: kube-ops-view
 ...
+

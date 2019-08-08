@@ -275,18 +275,6 @@
   loop_control:
     loop_var: loop_item
 
-- name: Install addons
-  when: addons is defined and master_name is defined and master_name.stdout == inventory_hostname
-  run_once: true
-  include_role:
-    name: addons
-    tasks_from: main
-  vars:
-    addon: "{{ loop_item.name }}"
-  with_items: "{{ addons }}"
-  loop_control:
-    loop_var: loop_item
-
 - name: Check that initsecret exists
   when: master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
@@ -383,4 +371,16 @@
 - name: Wait to raise kubernetes nodes
   pause:
     seconds: 20
+
+- name: Install addons
+  when: addons is defined and master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  include_role:
+    name: addons
+    tasks_from: main
+  vars:
+    addon: "{{ loop_item.name }}"
+  with_items: "{{ addons }}"
+  loop_control:
+    loop_var: loop_item
 ...

@@ -53,8 +53,6 @@
             labels:
               app: powerdns
           spec:
-            # Only use if you're also using RBAC
-            # serviceAccountName: external-dns
             containers:
             - name: powerdns
               image: pschiffe/pdns-mysql:alpine
@@ -171,7 +169,7 @@
       apiVersion: v1
       kind: Service
       metadata:
-        name: endpoint-dns
+        name: published-dns
         namespace: external-dns
       spec:
         ports:
@@ -211,11 +209,35 @@
           targetPort: pdns-admin-http
         selector:
           app: powerdns
-        type: LoadBalancer
+        type: ClusterIP
 
 - name: Install External-DNS with PowerDNS
   run_once: true
   shell: kubectl apply -f {{ ansible_env.HOME }}/powerdns.yml
+
+- name: Modify external LoadBalacer
+  when: addons_item.publish is defined and addons_item.publish['external'] is defined
+  include_role:
+    name: services
+    tasks_from: external
+  vars:
+    service: powerdns
+    externalport: 80
+    internalport: "pdns-admin-http"
+    protocol: "TCP"
+    namespace: "powerdns-admin"
+    label: "app"
+
+- name: Modify ingress route
+  when: addons_item.publish is defined and addons_item.publish['route'] is defined
+  include_role:
+    name: ingress
+    tasks_from: ingress_add_route
+  vars:
+    service: powerdns-admin
+    route: "/"
+    internalport: 80
+    namespace: "external-dns"
 
 - name: Install external-dns helm with klipper-helm
   run_once: true
@@ -292,7 +314,7 @@
   until: test.stdout != ""
 
 - name: Obtain dashboard IP
-  shell: kubectl get service -n external-dns endpoint-dns -o jsonpath='{.status.loadBalancer.ingress[].ip}'
+  shell: kubectl get service -n external-dns published-dns -o jsonpath='{.status.loadBalancer.ingress[].ip}'
   register: externaldns_ip
 
 - name: Make sure old dns conf is not in the resolv.conf configuration

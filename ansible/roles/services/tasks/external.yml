@@ -1,0 +1,44 @@
+---
+- name: Check Service
+  shell: kubectl get -n {{ namespace }} service {{ service }}lb
+  register: lb_state
+  ignore_errors: yes
+
+- name: Define a service for {{ service }}
+  when: lb_state.stdout == ""
+  copy:
+    dest: "{{ ansible_env.HOME }}/service.yml"
+    content: |
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: {{ service }}lb
+        namespace: {{ namespace }}
+      spec:
+        ports:
+        - name: "{{ protocol | lower }}-{{ externalport | lower }}-{{ internalport | lower }}"
+          port: {{ externalport }}
+          protocol: {{ protocol }}
+          targetPort: {{ internalport }}
+        selector:
+          {{ label }}: {{ service }}
+        type: LoadBalancer
+
+- name: Create service for namespace
+  shell: kubectl apply -n  {{ namespace }} -f {{ ansible_env.HOME }}/service.yml
+  when: lb_state.stdout == ""
+
+- name: Check Port
+  when: lb_state.stdout != ""
+  shell: kubectl get -n {{ namespace }} service {{ service }}lb  -o jsonpath='{.spec.ports[?(@.port=="{{ externalport }}")]}'
+  register: lbport_state
+  ignore_errors: yes
+
+- fail:
+    msg: External Port {{ externalport }} in use in namespace {{ namespace }}
+  when: lb_state.stdout != "" and lbport_state.stdout != ""
+
+- name: Apply Patch
+  when: lb_state.stdout != "" and lbport_state.stdout == ""
+  shell: kubectl patch service --type json -n {{ service }} {{ service }}lb -p '[{"op":"add","path":"/spec/ports/-","value":{"name":"{{ protocol | lower }}-{{ externalport | lower }}-{{ internalport | lower }}","port":"{{ externalport }}","protocol":"{{ protocol }}","targetPort":"{{ internalport }}"}}]'
+...

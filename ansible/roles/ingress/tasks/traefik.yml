@@ -1,6 +1,5 @@
 ---
 - name: install Traefik
-  run_once: true
   when: container_engine != "k3s"
   copy:
     dest: "{{ ansible_env.HOME }}/traefik.yml"
@@ -39,41 +38,13 @@
             restartPolicy: OnFailure
 
 - name: Wait to raise Traefik
-  run_once: true
   shell: kubectl get pods -n kube-system |grep traefik|grep -v helm|grep Running
   register: traefik_state
   retries: 25
   delay: 10
   until: traefik_state.stdout != ""
 
-- name: Define a traefik ingress
-  run_once: true
-  copy:
-    dest: "{{ ansible_env.HOME }}/traefik-ingress.yml"
-    content: |
-      ---
-      apiVersion: extensions/v1beta1
-      kind: Ingress
-      metadata:
-        name: traefik
-        namespace: kube-system
-        annotations:
-          kubernetes.io/ingress.class: traefik
-          traefik.ingress.kubernetes.io/frontend-entry-points: http,https
-          traefik.ingress.kubernetes.io/redirect-entry-point: https
-          traefik.ingress.kubernetes.io/redirect-permanent: "true"
-      spec:
-        rules:
-        - host: traefik-ui.{{ domain }}
-          http:
-            paths:
-            - path: /
-              backend:
-                serviceName: traefik
-                servicePort: 8080
-
 - name: Define a patch for traefik configmap
-  run_once: true
   copy:
     dest: "{{ ansible_env.HOME }}/traefik.cm.patch.yml"
     content: |
@@ -106,7 +77,6 @@
           entryPoint = "traefik"
 
 - name: Define a patch for traefik deployment
-  run_once: true
   copy:
     dest: "{{ ansible_env.HOME }}/traefik.deploy.patch.yml"
     content: |
@@ -124,7 +94,6 @@
                 protocol: TCP
 
 - name: Define a patch for traefik service
-  run_once: true
   copy:
     dest: "{{ ansible_env.HOME }}/traefik.svc.patch.yml"
     content: |
@@ -136,18 +105,18 @@
           targetPort: dashboard
 
 - name: Configure traefik deployment
-  run_once: true
   shell: kubectl patch deployment -n kube-system traefik -p "$(cat {{ ansible_env.HOME }}/traefik.deploy.patch.yml)"
 
 - name: Configure traefik configmap
-  run_once: true
   shell: kubectl patch configmap -n kube-system traefik -p "$(cat {{ ansible_env.HOME }}/traefik.cm.patch.yml)"
 
 - name: Configure traefik service
-  run_once: true
   shell: kubectl patch service -n kube-system traefik -p "$(cat {{ ansible_env.HOME }}/traefik.svc.patch.yml)"
 
-- name: Configure traefik ingress
-  run_once: true
-  shell: kubectl apply -f {{ ansible_env.HOME }}/traefik-ingress.yml
+- include: traefik_add_route.yml
+  vars:
+    service: traefik
+    route: "/"
+    internalport: 8080
+    namespace: kube-system
 ...

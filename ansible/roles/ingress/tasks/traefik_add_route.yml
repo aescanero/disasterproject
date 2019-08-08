@@ -1,22 +1,60 @@
 ---
-- name: Define a patch for ingress
+- name: Check Ingress
+  shell: kubectl get -n {{ namespace }} ingress traefik
+  register: ingress_state
+  ignore_errors: yes
+
+- name: Define a traefik ingress
+  when: ingress_state.stdout == ""
   copy:
-    dest: "{{ ansible_env.HOME }}/{{service}}.ingress.patch.yml"
+    dest: "{{ ansible_env.HOME }}/traefik-ingress.yml"
     content: |
+      ---
+      apiVersion: extensions/v1beta1
+      kind: Ingress
+      metadata:
+        name: traefik
+        annotations:
+          kubernetes.io/ingress.class: traefik
+          traefik.ingress.kubernetes.io/frontend-entry-points: http,https
+          traefik.ingress.kubernetes.io/redirect-entry-point: https
+          traefik.ingress.kubernetes.io/redirect-permanent: "true"
       spec:
         rules:
-        - host: {{service}}.{{ domain }}
+        - host: {{ service }}.{{ domain }}
           http:
             paths:
             - path: {{ route }}
               backend:
                 serviceName: {{ service }}
-                servicePort: {{ externalport }}
+                servicePort: {{ internalport }}
 
+- name: Create Ingress for namespace
+  shell: kubectl apply -n  {{ namespace }} -f {{ ansible_env.HOME }}/traefik-ingress.yml
+  when: ingress_state.stdout == ""
 
+- name: Check Host
+  when: ingress_state.stdout != ""
+#  shell: kubectl get -n {{ namespace }} ingress traefik -o jsonpath='{.spec.rules[?(@.host=="{{ service }}.{{ domain }}")]}'
+  shell: kubectl -n {{ namespace }} get ingress/traefik -o jsonpath='{.spec.rules[*].host}'|tr ' ' '\n'|cat --number|grep "{{ service }}.{{ domain }}"$|awk '{print $1}'
+  register: host_state
+  ignore_errors: yes
 
+- name: Check Path
+  when: ingress_state.stdout != "" and host_state.stdout != ""
+  shell: kubectl get -n {{ namespace }} ingress traefik -o jsonpath='{.spec.rules[?(@.host=="{{ service }}.{{ domain }}")].http.paths[?(@.path=="{{ route }}")]}'
+  register: path_state
+  ignore_errors: yes
 
-- name: Apply Patch
-  shell: kubectl patch ingress --type json -n kube-system traefik -p '[{"op":"add","path":"/spec/rules/-","value":{"host":"{{service}}.{{ domain }}","http":{"paths":[{"backend":{"serviceName":"{{service}}","servicePort":{{ externalport }}},"path":"{{ route }}"}]}}}]'
-#  shell: kubectl patch ingress --type='merge' -n kube-system traefik -p "$(cat {{ ansible_env.HOME }}/{{service}}.ingress.patch.yml)"
+- fail:
+    msg: Route {{ route }} in use in host {{ service }}.{{ domain }} in namespace {{ namespace }}
+  when: ingress_state.stdout != "" and host_state.stdout != "" and path_state.stdout != ""
+
+- name: Apply Host Patch
+  when: ingress_state.stdout != "" and host_state.stdout == ""
+  shell: kubectl patch ingress --type json -n {{ namespace }} traefik -p '[{"op":"add","path":"/spec/rules/-","value":{"host":"{{service}}.{{ domain }}","http":{"paths":[{"backend":{"serviceName":"{{service}}","servicePort":{{ internalport }} },"path":"{{ route }}"}]} } }]'
+
+- name: Apply Path Patch
+  when: ingress_state.stdout != "" and host_state.stdout != "" and path_state.stdout == ""
+  shell: kubectl patch ingress --type json -n {{ namespace }} traefik -p '[{"op":"add","path":"/spec/rules/{{ host_state - 1 }}/http/paths/-","value":{"backend":{"serviceName":"{{service}}","servicePort":{{ internalport }} },"path":"{{ route }}"} }]'
 ...

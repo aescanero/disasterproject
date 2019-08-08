@@ -21,8 +21,22 @@ all:
         - traefik
         addons:
         - name: externaldns
+          publish:
+          - route
         - name: k8dash
-          external: true
-          route: true
+          publish:
+          - route
+          - external
         - name: weave-scope
-          route: true
+          publish:
+          - route
+        - name: dashboard
+        - name: kube-ops-view
+          publish:
+          - route
+        - name: kubernator
+          publish:
+          - route
+        - name: kubeview
+          publish:
+          - route
