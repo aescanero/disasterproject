@@ -1,0 +1,49 @@
+---
+- name: Install metrics-server helm with klipper-helm
+  copy:
+    dest: "{{ ansible_env.HOME }}/metrics-server.yml"
+    content: |
+      ---
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: metrics-server
+      ---
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: helm-install-metrics-server
+        namespace: kube-system
+      spec:
+        backoffLimit: 1000
+        completions: 1
+        parallelism: 1
+        template:
+          metadata:
+            labels:
+              jobname: helm-install-metrics-server
+          spec:
+            containers:
+            - args:
+              - install
+              - --namespace
+              - metrics-server
+              - --name
+              - metrics-server
+              - stable/metrics-server 
+              image: rancher/klipper-helm:v0.1.5
+              name: helm
+            serviceAccount: helm-install-sa
+            serviceAccountName: helm-install-sa
+            restartPolicy: OnFailure
+
+- name: Configure Service
+  shell: kubectl apply -f {{ ansible_env.HOME }}/metrics-server.yml
+
+- name: Wait to raise metrics-server
+  shell: kubectl get pods -n metrics-server |grep metrics-server|grep -v helm|grep Running
+  register: test
+  retries: 25
+  delay: 10
+  until: test.stdout != ""
+...
