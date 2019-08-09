@@ -1,6 +1,5 @@
 ---
-#https://hub.kubeapps.com/charts/stable/kube-ops-view
-- name: Install kube-ops-view helm with klipper-helm
+- name: Define kube-ops-view
   copy:
     dest: "{{ ansible_env.HOME }}/kube-ops-view.yml"
     content: |
@@ -10,44 +9,94 @@
       metadata:
         name: kube-ops-view
       ---
-      apiVersion: batch/v1
-      kind: Job
+      apiVersion: v1
+      kind: ServiceAccount
       metadata:
-        name: helm-install-kube-ops-view
-        namespace: kube-system
+        name: kube-ops-view-sa
+        namespace: kube-ops-view
+      ---
+      apiVersion: rbac.authorization.k8s.io/v1beta1
+      kind: ClusterRoleBinding
+      metadata:
+        name: kube-ops-view-sa
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: cluster-admin
+      subjects:
+      - kind: ServiceAccount
+        name: kube-ops-view-sa
+        namespace: kube-ops-view
+      ---
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: kube-ops-view
+        namespace: kube-ops-view
       spec:
-        backoffLimit: 1000
-        completions: 1
-        parallelism: 1
+        ports:
+        - name: http
+          port: 80
+          protocol: TCP
+          targetPort: 8080
+        selector:
+          app: kube-ops-view
+        type: ClusterIP
+      ---
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        labels:
+          app: kube-ops-view
+        name: kube-ops-view
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: kube-ops-view
         template:
           metadata:
             labels:
-              jobname: helm-install-kube-ops-view
+              app: kube-ops-view
           spec:
+            serviceAccountName: kube-ops-view-sa
             containers:
-            - args:
-              - install
-              - --namespace
-              - kube-ops-view
-              - --name
-              - kube-ops-view
-              - stable/kube-ops-view
-              image: rancher/klipper-helm:v0.1.5
-              name: helm
-            serviceAccount: helm-install-sa
-            serviceAccountName: helm-install-sa
-            restartPolicy: OnFailure
+            - image: hjacobs/kube-ops-view:0.11
+              name: kube-ops-view
+              ports:
+              - containerPort: 8080
+                protocol: TCP
 
-- name: Configure Service
-  shell: kubectl apply -f {{ ansible_env.HOME }}/kube-ops-view.yml
+- name: Apply and Deploy
+  shell: kubectl apply -n kube-ops-view -f {{ ansible_env.HOME }}/kube-ops-view.yml
+
+- name: Wait to raise kube-ops-view
+  shell: kubectl get pods -n kube-ops-view |grep kube-ops-view|grep Running
+  register: test
+  retries: 25
+  delay: 10
+  until: test.stdout != ""
+
+- name: Modify external LoadBalacer
+  when: addons_item.publish is defined and "external" in addons_item.publish
+  include_role:
+    name: services
+    tasks_from: external
+  vars:
+    service: kube-ops-view
+    externalport: 80
+    internalport: 80
+    protocol: "TCP"
+    namespace: "kube-ops-view"
+    label: "app"
 
 - name: Modify ingress route
-  when: addons_item.publish is defined and addons_item.publish['route'] is defined
+  when: addons_item.publish is defined and "route" in addons_item.publish
   include_role:
     name: ingress
     tasks_from: ingress_add_route
   vars:
-    service: kube-ops-view-kube-ops-view
+    service: kube-ops-view
     route: "/"
     internalport: 80
     namespace: kube-ops-view

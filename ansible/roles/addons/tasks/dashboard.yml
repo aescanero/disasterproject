@@ -1,23 +1,36 @@
 ---
+- name: Check that metrics-server addon is installed
+  stat:
+    path: "{{ ansible_env.HOME }}/.metrics-server"
+  register: metrics_server_stat_result
+
+- name: install addon metrics-server
+  when: metrics_server_stat_result.stat.exists == false
+  include: "metrics-server.yml"
+
+- name: Mark addon as intalled
+  when: metrics_server_stat_result.stat.exists == false
+  run_once: true
+  copy:
+    dest: "{{ ansible_env.HOME }}/.metrics-server"
+    content: |
+      installed
+
 - name: Create dashboard sa
   when: master_name is defined and master_name.stdout == inventory_hostname
   shell: "{{ item }}"
   with_items:
-    - kubectl create serviceaccount dashboard-sa --dry-run -o yaml | kubectl apply -f -
-    - kubectl create clusterrolebinding dashboard-sa --clusterrole=cluster-admin --serviceaccount=default:dashboard-sa --dry-run -o yaml | kubectl apply -f -
-
-- name: Configure Dashboard
-  shell: kubectl apply -f "https://raw.githubusercontent.com/kubernetes/dashboard/v1.10.1/src/deploy/recommended/kubernetes-dashboard.yaml"
+    - 'kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v1.10.1/src/deploy/recommended/kubernetes-dashboard.yaml'
 
 - name: Wait to raise dashboard
-  shell: kubectl get pods -n dashboard |grep kubernetes-dashboard|grep Running
+  shell: kubectl get pods -n kube-system |grep kubernetes-dashboard|grep Running
   register: test
   retries: 25
   delay: 10
   until: test.stdout != ""
 
 - name: Modify external LoadBalacer
-  when: addons_item.publish is defined and addons_item.publish['external'] is defined
+  when: addons_item.publish is defined and "external" in addons_item.publish
   include_role:
     name: services
     tasks_from: external
@@ -30,28 +43,28 @@
     label: "k8s-app"
 
 - name: Modify ingress route
-  when: addons_item.publish is defined and addons_item.publish['route'] is defined
+  when: addons_item.publish is defined and "route" in addons_item.publish
   include_role:
     name: ingress
     tasks_from: ingress_add_route
   vars:
     service: dashboard
-    route: "/"
+    route: "/dashboard"
     internalport: 443
     namespace: "kube-system"
 
-- name: Obtain dashboard IP
-  when: addons_item.publish is defined and addons_item.publish['external'] is defined
+- name: Obtain kube-system IP
+  when: addons_item.publish is defined and "external" in addons_item.publish
   shell: kubectl get service -n kube-system dashboard -o jsonpath='{.status.loadBalancer.ingress[].ip}'
   register: dashboard_ip
 
-- name: Obtain dashboard Token
+- name: Obtain kube-system Token
   when: master_name is defined and master_name.stdout == inventory_hostname
   shell: kubectl get secret `kubectl get secret|grep ^dashboard|awk '{print $1}'` -o jsonpath="{.data.token}"|base64 -d
   register: dashboard_token
 
 - name: HOW TO ACCESS TO DASHBOARD
-  when: addons_item.publish is defined and addons_item.publish['external'] is defined
+  when: addons_item.publish is defined and "external" in addons_item.publish
   debug:
     msg: |
       Things left to do:
@@ -59,7 +72,7 @@
         - Use the next token to access dashboard: {{dashboard_token.stdout}}
 
 - name: HOW TO ACCESS TO DASHBOARD
-  when: addons_item.publish is defined and addons_item.publish['route'] is defined
+  when: addons_item.publish is defined and "route" in addons_item.publish
   debug:
     msg: |
       Things left to do:

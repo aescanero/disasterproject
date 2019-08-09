@@ -1,6 +1,4 @@
 ---
-- debug: var=addons_item
-
 - name: Check that addon is installed
   stat:
     path: "{{ ansible_env.HOME }}/.{{ addons_item.name }}"

@@ -1,12 +1,12 @@
 ---
-- name: Create kubeview sa
-  when: master_name is defined and master_name.stdout == inventory_hostname
+- name: Create kubeview namespace and sa
   shell: "{{ item }}"
   with_items:
+    - kubectl create namespace kubeview --dry-run -o yaml | kubectl apply -f -
     - kubectl create namespace kubview --dry-run -o yaml | kubectl apply -f -
-    - 'curl -s https://raw.githubusercontent.com/benc-uk/kubeview/master/deployments/service-account.yaml|grep -v "namespace:"| kubectl apply -n kubeview -f -'
+    - 'curl -s https://raw.githubusercontent.com/benc-uk/kubeview/master/deployments/service-account.yaml|sed s/default/kubeview/|kubectl apply -f -'
 
-- name: Install kubeview
+- name: Define kubeview
   copy:
     dest: "{{ ansible_env.HOME }}/kubeview.yml"
     content: |
@@ -60,7 +60,7 @@
   until: test.stdout != ""
 
 - name: Modify external LoadBalacer
-  when: addons_item.publish is defined and addons_item.publish['external'] is defined
+  when: addons_item.publish is defined and "external" in addons_item.publish
   include_role:
     name: services
     tasks_from: external
@@ -73,7 +73,7 @@
     label: "app"
 
 - name: Modify ingress route
-  when: addons_item.publish is defined and addons_item.publish['route'] is defined
+  when: addons_item.publish is defined and "route" in addons_item.publish
   include_role:
     name: ingress
     tasks_from: ingress_add_route
@@ -84,7 +84,7 @@
     namespace: "kubeview"
 
 - name: Obtain dashboard IP
-  when: addons_item.publish is defined and addons_item.publish['external'] is defined
+  when: addons_item.publish is defined and "external" in addons_item.publish
   shell: kubectl get service -n kube-system kubeview -o jsonpath='{.status.loadBalancer.ingress[].ip}'
   register: kubeview_ip
 
@@ -94,7 +94,7 @@
   register: kubeview_token
 
 - name: HOW TO ACCESS TO DASHBOARD
-  when: addons_item.publish is defined and addons_item.publish['external'] is defined
+  when: addons_item.publish is defined and "external" in addons_item.publish
   debug:
     msg: |
       Things left to do:
@@ -102,7 +102,7 @@
         - Use the next token to access dashboard: {{kubeview_token.stdout}}
 
 - name: HOW TO ACCESS TO DASHBOARD
-  when: addons_item.publish is defined and addons_item.publish['route'] is defined
+  when: addons_item.publish is defined and "route" in addons_item.publish
   debug:
     msg: |
       Things left to do:

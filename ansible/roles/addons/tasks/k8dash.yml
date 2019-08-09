@@ -3,13 +3,12 @@
   shell: kubectl create namespace k8dash --dry-run -o yaml | kubectl apply -f -
 
 - name: Create k8dash sa
-  when: master_name is defined and master_name.stdout == inventory_hostname
   shell: "{{ item }}"
   with_items:
     - kubectl create -n k8dash serviceaccount k8dash-sa --dry-run -o yaml | kubectl apply -f -
     - kubectl create clusterrolebinding k8dash-sa --clusterrole=cluster-admin --serviceaccount=k8dash:k8dash-sa --dry-run -o yaml | kubectl apply -f -
 
-- name: Install k8dash
+- name: Define k8dash
   copy:
     dest: "{{ ansible_env.HOME }}/k8dash.yml"
     content: |
@@ -72,7 +71,7 @@
   until: test.stdout != ""
 
 - name: Modify external LoadBalacer
-  when: addons_item.publish is defined and addons_item.publish['external'] is defined
+  when: addons_item.publish is defined and "external" in addons_item.publish
   include_role:
     name: services
     tasks_from: external
@@ -85,18 +84,18 @@
     label: "k8s-app"
 
 - name: Modify ingress route
-  when: addons_item.publish is defined and addons_item.publish['route'] is defined
+  when: addons_item.publish is defined and "route" in addons_item.publish
   include_role:
     name: ingress
     tasks_from: ingress_add_route
   vars:
     service: k8dash
     route: "/"
-    internalport: 443
+    internalport: 80
     namespace: "k8dash"
 
 - name: Obtain dashboard IP
-  when: addons_item.publish is defined and addons_item.publish['external'] is defined
+  when: addons_item.publish is defined and "external" in addons_item.publish
   shell: kubectl get service -n kube-system k8dash -o jsonpath='{.status.loadBalancer.ingress[].ip}'
   register: k8dash_ip
 
@@ -106,7 +105,7 @@
   register: k8dash_token
 
 - name: HOW TO ACCESS TO DASHBOARD
-  when: addons_item.publish is defined and addons_item.publish['external'] is defined
+  when: addons_item.publish is defined and "external" in addons_item.publish
   debug:
     msg: |
       Things left to do:
@@ -114,7 +113,7 @@
         - Use the next token to access dashboard: {{k8dash_token.stdout}}
 
 - name: HOW TO ACCESS TO DASHBOARD
-  when: addons_item.publish is defined and addons_item.publish['route'] is defined
+  when: addons_item.publish is defined and "route" in addons_item.publish
   debug:
     msg: |
       Things left to do:

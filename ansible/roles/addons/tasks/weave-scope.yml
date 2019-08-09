@@ -43,7 +43,7 @@
   shell: kubectl apply -f {{ ansible_env.HOME }}/weave-scope.yml
 
 - name: Modify ingress route
-  when: addons_item.publish is defined and addons_item.publish['route'] is defined
+  when: addons_item.publish is defined and "route" in addons_item.publish
   include_role:
     name: ingress
     tasks_from: ingress_add_route

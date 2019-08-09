@@ -88,6 +88,28 @@ all:
       vars:
         domain: FQDN_DOMAIN
         network: "VM_NETWORK"
+        ingress:
+        - traefik
+        addons:
+        - name: externaldns
+          publish:
+          - route
+          - external
+        - name: k8dash
+          publish:
+          - route
+        - name: weave-scope
+          publish:
+          - route
+        - name: dashboard
+          publish:
+          - route
+        - name: kube-ops-view
+          publish:
+          - route
+        - name: kubeview
+          publish:
+          - route
 ```
 
 Se ejecuta con 
@@ -143,9 +165,24 @@ all:
         - traefik
         addons:
         - name: externaldns
-        - name: rio
-        - name: weave-scope
+          publish:
+          - route
+          - external
         - name: k8dash
+          publish:
+          - route
+        - name: weave-scope
+          publish:
+          - route
+        - name: dashboard
+          publish:
+          - route
+        - name: kube-ops-view
+          publish:
+          - route
+        - name: kubeview
+          publish:
+          - route
 ```
 
 Se añade la variable global opcional: addons para añadir ciertas caracteristicas a la demo como pueden ser acceso al interfaz web de

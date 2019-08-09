@@ -34,9 +34,6 @@ all:
         - name: kube-ops-view
           publish:
           - route
-        - name: kubernator
-          publish:
-          - route
         - name: kubeview
           publish:
           - route

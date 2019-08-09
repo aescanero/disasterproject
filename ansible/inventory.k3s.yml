@@ -23,18 +23,17 @@ all:
         - name: externaldns
           publish:
           - route
+          - external
         - name: k8dash
           publish:
           - route
-          - external
         - name: weave-scope
           publish:
           - route
         - name: dashboard
-        - name: kube-ops-view
           publish:
           - route
-        - name: kubernator
+        - name: kube-ops-view
           publish:
           - route
         - name: kubeview
