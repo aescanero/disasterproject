@@ -1,6 +1,6 @@
 ---
 - name: install Traefik
-  when: container_engine != "k3s"
+  when: container_engine != "k3s" or network_controller is defined
   copy:
     dest: "{{ ansible_env.HOME }}/traefik.yml"
     content: |
@@ -29,6 +29,10 @@
               - --set-string
               - dashboard.enabled=true
               - --set-string
+              - rbac.enabled=true
+              - --set-string
+              - ssl.enabled=true
+              - --set-string
               - dashboard.auth.basic.test='$apr1$H6uskkkW$IgXLP6ewTrSuBkTrqE8wj/'
               - stable/traefik
               image: rancher/klipper-helm:v0.1.5
@@ -36,6 +40,10 @@
             serviceAccount: helm-install-sa
             serviceAccountName: helm-install-sa
             restartPolicy: OnFailure
+
+- name: install Traefik
+  when: container_engine != "k3s" or network_controller is defined
+  shell: "kubectl apply -f {{ ansible_env.HOME }}/traefik.yml"
 
 - name: Wait to raise Traefik
   shell: kubectl get pods -n kube-system |grep traefik|grep -v helm|grep Running

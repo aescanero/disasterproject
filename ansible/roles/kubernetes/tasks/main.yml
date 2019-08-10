@@ -110,7 +110,7 @@
     mode: '0755'
     username: root
     group: root
-  when: kubeadm_stat_result.stat.exists == false && master_name is defined and master_name.stdout == inventory_hostname
+  when: kubeadm_stat_result.stat.exists == false and master_name is defined and master_name.stdout == inventory_hostname
 
 - name: Check that the kubelet service exists
   stat:
@@ -118,7 +118,7 @@
   register: kubelet_service_stat
 
 - name: install /etc/systemd/system/kubelet.service
-  when: kubelet_service_stat.exists == false && master_name is defined and master_name.stdout == inventory_hostname
+  when: kubelet_service_stat.stat.exists == false and master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
   copy:
     dest: /etc/systemd/system/kubelet.service
@@ -140,7 +140,7 @@
       WantedBy=multi-user.target
 
 - name: install /etc/systemd/system/kubelet.service
-  when: kubelet_service_stat.exists == false && master_name is defined and master_name.stdout != inventory_hostname
+  when: kubelet_service_stat.stat.exists == false and master_name is defined and master_name.stdout != inventory_hostname
   copy:
     dest: /etc/systemd/system/kubelet.service
     content: |
@@ -185,43 +185,50 @@
     masked: no
     state: started
 
-#- name: enable and start kubelet service
-#  when: master_name is defined and master_name.stdout == inventory_hostname
-#  run_once: true
-#  systemd:
-#    name: kubelet
-#    daemon_reload: yes
-#    enabled: yes
-#    masked: no
-#    state: started
+- name: Check that kubeadm was executed
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  stat:
+    path: "{{ ansible_env.HOME }}/.kubeadm"
+  register: kubeadmex_stat_result
 
 - name: execute kubeadm
   shell: kubeadm init --apiserver-advertise-address {{ vm_ip }} --pod-network-cidr=10.244.0.0/16 --cri-socket /run/containerd/containerd.sock  | grep "kubeadm join"|grep token
   register: secret_token
-  when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  when: kubeadmex_stat_result.stat.exists == false and master_name is defined and master_name.stdout == inventory_hostname
 
-- name: Install network drivers
-  when: master_name is defined and master_name.stdout == inventory_hostname
+- name: Schedule master node
+  when: kubeadmex_stat_result.stat.exists == false and master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
   shell: "{{ item }}"
   with_items:
     - mkdir  {{ ansible_env.HOME }}/.kube
     - cp -i /etc/kubernetes/admin.conf {{ ansible_env.HOME }}/.kube/config
+    - kubectl taint nodes {{ inventory_hostname }} node-role.kubernetes.io/master:NoSchedule-
     - kubectl apply -f "https://raw.githubusercontent.com/danderson/metallb/master/manifests/metallb.yaml"
 
-- name: Install default network
-  when: network is not defined and master_name is defined and master_name.stdout == inventory_hostname
+- name: Mark kubeadm as executed
+  when: kubeadmex_stat_result.stat.exists == false and master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  copy:
+    dest: "{{ ansible_env.HOME }}/.kubeadm"
+    content: |
+      executed
+
+- name: Install default network_controller
+  when: network_controller is not defined and master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
   include_role:
     name: network
     tasks_from: flannel
   
-- name: Install network
-  when: network is defined and master_name is defined and master_name.stdout == inventory_hostname
+- name: Install network_controller
+  when: network_controller is defined and master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
   include_role:
     name: network
-    tasks_from: {{ network }}
+    tasks_from: "{{ network_controller }}"
 
 - name: Wait to raise k8s master
   run_once: true
@@ -231,6 +238,13 @@
   retries: 25
   delay: 10
   until: test.stdout != ""
+
+- name: Install storage_controller
+  when: storage is defined and master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  include_role:
+    name: storage
+    tasks_from: "{{ storage }}"
 
 - name: Define a default external pool for Kubernetes
   when: master_name is defined and master_name.stdout == inventory_hostname
@@ -273,8 +287,9 @@
   include_role:
     name: ingress
     tasks_from: main
-  var:
-    ingress: "traefik"
+  vars:
+    ingress_item:
+      name: "traefik"
   
 - name: Install ingress
   when: ingress is defined and master_name is defined and master_name.stdout == inventory_hostname
@@ -282,11 +297,9 @@
   include_role:
     name: ingress
     tasks_from: main
-  vars:
-    ingress: "{{ loop_item }}"
   with_items: "{{ ingress }}"
   loop_control:
-    loop_var: loop_item
+    loop_var: ingress_item
 
 - name: Check that initsecret exists
   when: master_name is defined and master_name.stdout == inventory_hostname
@@ -296,7 +309,7 @@
   register: initsecret_stat_result
 
 - name: Create Service Account initnode
-  when: initsecret_stat_result.stat.exists == false && master_name is defined and master_name.stdout == inventory_hostname
+  when: initsecret_stat_result.stat.exists == false and master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
   shell: "{{ item }}"
   with_items:
@@ -322,10 +335,10 @@
   run_once: true
   stat:
     path: "{{ ansible_env.HOME }}/bootstrap-kubeconfig"
-  register: bootstrap-kubeconfig_stat_result
+  register: bootstrap_kubeconfig_stat_result
 
 - name: Create bootstrap-kubeconfig to add new nodes
-  when: bootstrap-kubeconfig_stat_result.stat.exists == false && master_name is defined and master_name.stdout == inventory_hostname
+  when: bootstrap_kubeconfig_stat_result.stat.exists == false and master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
   shell: "{{ item }}"
   with_items:
@@ -356,12 +369,12 @@
   when: master_name is defined and master_name.stdout != inventory_hostname
   stat:
     path: "/var/lib/kubelet/bootstrap-kubeconfig"
-  register: bootstrap-kubeconfig_stat_result
+  register: bootstrap_kubeconfig_stat_result
 
 - copy: 
     content: "{{ bootstrap.content |  b64decode }}"
     dest: /var/lib/kubelet/bootstrap-kubeconfig
-  when: bootstrap-kubeconfig_stat_result.stat.exists == false && master_name is defined and master_name.stdout != inventory_hostname
+  when: master_name is defined and master_name.stdout != inventory_hostname and bootstrap_kubeconfig_stat_result.stat.exists == false
 
 - name: enable and start kubelet service
   when: master_name is defined and master_name.stdout != inventory_hostname
@@ -391,9 +404,7 @@
   include_role:
     name: addons
     tasks_from: main
-  vars:
-    addon: "{{ loop_item.name }}"
   with_items: "{{ addons }}"
   loop_control:
-    loop_var: loop_item
+    loop_var: addons_item
 ...

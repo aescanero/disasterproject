@@ -96,7 +96,7 @@
 
 - name: Obtain dashboard IP
   when: addons_item.publish is defined and "external" in addons_item.publish
-  shell: kubectl get service -n kube-system k8dash -o jsonpath='{.status.loadBalancer.ingress[].ip}'
+  shell: kubectl get service -n k8dash k8dash -o jsonpath='{.status.loadBalancer.ingress[].ip}'
   register: k8dash_ip
 
 - name: Obtain dashboard Token

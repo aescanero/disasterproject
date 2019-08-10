@@ -1,19 +1,4 @@
 ---
-- name: Update repositories cache and install dnsmasq
-  apt:
-    name: dnsmasq
-  when: ansible_os_family == "Debian"
-  run_once: true
-  delegate_to: localhost
-
-- name: Update repositories cache and install dnsmasq
-  yum:
-    name: dnsmasq
-    state: latest
-  when: ansible_os_family == "Redhat"
-  run_once: true
-  delegate_to: localhost
-
 - name: Define PowerDNS
   run_once: true
   vars:

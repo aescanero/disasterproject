@@ -17,6 +17,7 @@ all:
       vars:
         domain: disasterproject.com
         network: "192.168.8"
+        storage: nfs-client
         ingress:
         - traefik
         addons:
