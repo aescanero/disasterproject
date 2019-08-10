@@ -1,0 +1,107 @@
+---
+- name: Update repositories cache and install dnsmasq
+  apt:
+    name: nfs-kernel-server
+  when: ansible_os_family == "Debian"
+  delegate_to: localhost
+
+- name: Update repositories cache and install dnsmasq
+  yum:
+    name: nfs-utils
+    state: latest
+  when: ansible_os_family == "Redhat"
+  delegate_to: localhost
+
+- name: Creates directory nfsshare
+  file:
+    path: /var/nfs/share
+    state: directory
+    mode: '0777'
+
+- name: Make sure old nfs conf is not in the /etc/exports configuration
+  delegate_to: localhost
+  lineinfile:
+    path: /etc/exports
+    state: absent
+    regexp: '#Added by Ansible nfs client role'
+
+- name: Add a line to resolv.conf
+  delegate_to: localhost
+  lineinfile:
+    path: /etc/resolv.conf
+    insertbefore: '^nameserver'
+    line: '/var/nfs/share {{ network }}.0/24(rw,sync,no_root_squash,no_subtree_check) #Added by Ansible nfs client role'
+
+- name: enable and start nfs service
+  when: ansible_os_family == "Debian"
+  delegate_to: localhost
+  systemd:
+    name: {{ item }}
+    daemon_reload: yes
+    enabled: yes
+    masked: no
+    state: started
+  with_items:
+    - nfs-server
+    - nfs-blkmap
+
+- name: enable and start nfs service
+  when: ansible_os_family == "Redhat"
+  delegate_to: localhost
+  systemd:
+    name: {{ item }}
+    daemon_reload: yes
+    enabled: yes
+    masked: no
+    state: started
+  with_items:
+    - nfs-server
+    - rpcbind
+    - nfs-lock
+    - nfs-idmap
+
+- name: Install nfs-client-provisioner helm with klipper-helm
+  copy:
+    dest: "{{ ansible_env.HOME }}/nfs-client.yml"
+    content: |
+      ---
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: nfs-client
+      ---
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: helm-install-nfs-client
+        namespace: kube-system
+      spec:
+        backoffLimit: 1000
+        completions: 1
+        parallelism: 1
+        template:
+          metadata:
+            labels:
+              jobname: helm-install-nfs-client
+          spec:
+            containers:
+            - args:
+              - install
+              - --name
+              - nfs-client
+              - --set-string
+              - nfs.server={{ network }}.1
+              - --set-string
+              - nfs.path=/var/nfs/share
+              - --set-string
+              - storageClass.defaultClass=true
+              - stable/nfs-client-provisioner
+              image: rancher/klipper-helm:v0.1.5
+              name: helm
+            serviceAccount: helm-install-sa
+            serviceAccountName: helm-install-sa
+            restartPolicy: OnFailure
+
+- name: Configure Service
+  shell: kubectl apply -f {{ ansible_env.HOME }}/nfs-client.yml
+...
