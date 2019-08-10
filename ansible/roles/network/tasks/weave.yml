@@ -1,0 +1,19 @@
+---
+- name: Check that network driver is installed
+  stat:
+    path: "{{ ansible_env.HOME }}/.weave"
+  register: addon_stat_result
+
+- name: Install weave
+  shell: "{{ item }}"
+  with_items:
+    - kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+
+- name: Mark addon as intalled
+  when: addon_stat_result.stat.exists == false
+  run_once: true
+  copy:
+    dest: "{{ ansible_env.HOME }}/.weave"
+    content: |
+      installed
+...

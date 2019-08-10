@@ -92,7 +92,7 @@
   register: k3s_master_service_stat
 
 - name: install /etc/systemd/system/k3smaster.service on master
-  when: master_name is defined and master_name.stdout == inventory_hostname and k3s_master_service_stat.stat.exists == false and ingress is defined and "traefik" not in ingress
+  when: master_name is defined and master_name.stdout == inventory_hostname and k3s_master_service_stat.stat.exists == false and ingress is defined and "traefik" not in ingress and network is not defined
   run_once: true
   copy:
     dest: /etc/systemd/system/k3smaster.service
@@ -110,7 +110,25 @@
       WantedBy=multi-user.target
 
 - name: install /etc/systemd/system/k3smaster.service on master
-  when: master_name is defined and master_name.stdout == inventory_hostname and k3s_master_service_stat.stat.exists == false and ( ingress is not defined or "traefik" in ingress )
+  when: master_name is defined and master_name.stdout == inventory_hostname and k3s_master_service_stat.stat.exists == false and ingress is defined and "traefik" not in ingress and network is defined
+  run_once: true
+  copy:
+    dest: /etc/systemd/system/k3smaster.service
+    content: |
+      [Unit]
+      Description=k3s
+      
+      [Service]
+      ExecStart=/usr/bin/k3s server --cluster-domain {{ domain }} --no-flannel --no-deploy servicelb --no-deploy traefik --bind-address {{ vm_ip }}
+      Restart=always
+      StartLimitInterval=0
+      RestartSec=10
+      
+      [Install]
+      WantedBy=multi-user.target
+
+- name: install /etc/systemd/system/k3smaster.service on master
+  when: master_name is defined and master_name.stdout == inventory_hostname and k3s_master_service_stat.stat.exists == false and ( ingress is not defined or "traefik" in ingress ) and network is not defined
   run_once: true
   copy:
     dest: /etc/systemd/system/k3smaster.service
@@ -120,6 +138,24 @@
       
       [Service]
       ExecStart=/usr/bin/k3s server --cluster-domain {{ domain }} --no-deploy servicelb --bind-address {{ vm_ip }}
+      Restart=always
+      StartLimitInterval=0
+      RestartSec=10
+      
+      [Install]
+      WantedBy=multi-user.target
+
+- name: install /etc/systemd/system/k3smaster.service on master
+  when: master_name is defined and master_name.stdout == inventory_hostname and k3s_master_service_stat.stat.exists == false and ( ingress is not defined or "traefik" in ingress ) and network is defined
+  run_once: true
+  copy:
+    dest: /etc/systemd/system/k3smaster.service
+    content: |
+      [Unit]
+      Description=k3s
+      
+      [Service]
+      ExecStart=/usr/bin/k3s server --cluster-domain {{ domain }} --no-flannel --no-deploy servicelb --bind-address {{ vm_ip }}
       Restart=always
       StartLimitInterval=0
       RestartSec=10
@@ -158,6 +194,13 @@
   run_once: true
   shell: cp -i /etc/rancher/k3s/k3s.yaml "{{ ansible_env.HOME }}"/.kube/config
 
+- name: Install network
+  when: network is defined and master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  include_role:
+    name: network
+    tasks_from: {{ network }}
+
 - name: Define a default external pool for Kubernetes
   when: master_name is defined and master_name.stdout == inventory_hostname and k3s_stat_result.stat.exists == false
   run_once: true
@@ -193,12 +236,6 @@
     - kubectl apply -f "https://raw.githubusercontent.com/danderson/metallb/master/manifests/metallb.yaml"
     - kubectl apply -f {{ ansible_env.HOME }}/pool.yml
 
-#- name: Obtain helm installer system account Token
-#  when: master_name is defined and master_name.stdout == inventory_hostname
-#  run_once: true
-#  shell: kubectl get secret `kubectl get secret|grep ^helm-install-sa|awk '{print $1}'` -o jsonpath="{.data.token}"|base64 -d
-#  register: helm-install-sa-token
-
 - name: Install default ingress
   when: ingress is not defined and master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
@@ -233,7 +270,24 @@
   register: k3s_node_service_stat
 
 - name: install /etc/systemd/system/k3s.service on nodes
-  when: master_name is defined and master_name.stdout != inventory_hostname and k3s_node_service_stat.stat.exists == false
+  when: master_name is defined and master_name.stdout != inventory_hostname and k3s_node_service_stat.stat.exists == false and network is not defined
+  copy:
+    dest: /etc/systemd/system/k3s.service
+    content: |
+      [Unit]
+      Description=k3s
+      
+      [Service]
+      ExecStart=/usr/bin/k3s agent --server https://{{ master_name.stdout }}:6443 --token {{ token.content |  b64decode }}
+      Restart=always
+      StartLimitInterval=0
+      RestartSec=10
+      
+      [Install]
+      WantedBy=multi-user.target
+
+- name: install /etc/systemd/system/k3s.service on nodes
+  when: master_name is defined and master_name.stdout != inventory_hostname and k3s_node_service_stat.stat.exists == false and network is defined
   copy:
     dest: /etc/systemd/system/k3s.service
     content: |

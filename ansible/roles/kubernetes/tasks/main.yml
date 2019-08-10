@@ -207,8 +207,21 @@
   with_items:
     - mkdir  {{ ansible_env.HOME }}/.kube
     - cp -i /etc/kubernetes/admin.conf {{ ansible_env.HOME }}/.kube/config
-    - kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
     - kubectl apply -f "https://raw.githubusercontent.com/danderson/metallb/master/manifests/metallb.yaml"
+
+- name: Install default network
+  when: network is not defined and master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  include_role:
+    name: network
+    tasks_from: flannel
+  
+- name: Install network
+  when: network is defined and master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  include_role:
+    name: network
+    tasks_from: {{ network }}
 
 - name: Wait to raise k8s master
   run_once: true
