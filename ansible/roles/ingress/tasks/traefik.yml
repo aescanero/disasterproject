@@ -33,6 +33,14 @@
               - --set-string
               - ssl.enabled=true
               - --set-string
+              - ssl.mtls.enabled=true
+              - --set-string
+              - ssl.mtls.optional=true
+              - --set-string
+              - metrics.prometheus.enabled=true
+              - --set-string
+              - ssl.generateTLS=true
+              - --set-string
               - dashboard.auth.basic.test='$apr1$H6uskkkW$IgXLP6ewTrSuBkTrqE8wj/'
               - stable/traefik
               image: rancher/klipper-helm:v0.1.5
@@ -53,6 +61,50 @@
   until: traefik_state.stdout != ""
 
 - name: Define a patch for traefik configmap
+  when: container_engine != "k3s" or network_controller is defined
+  copy:
+    dest: "{{ ansible_env.HOME }}/traefik.cm.patch.yml"
+    content: |
+      data:
+        traefik.toml: |
+          # traefik.toml
+          logLevel = "info"
+          defaultEntryPoints = ["http","https","traefik"]
+          [entryPoints]
+            [entryPoints.http]
+            address = ":80"
+            compress = true
+            [entryPoints.https]
+            address = ":443"
+            compress = true
+              [entryPoints.https.tls]
+                [entryPoints.https.tls.ClientCA]
+                files = []
+                optional = true
+                [[entryPoints.https.tls.certificates]]
+                CertFile = "/ssl/tls.crt"
+                KeyFile = "/ssl/tls.key"
+            [entryPoints.traefik]
+              address = ":8080"
+              [entryPoints.traefik.auth.basic]
+              users = ["admin:$apr1$zjjGWKW4$W2JIcu4m26WzOzzESDF0W/"]
+          [ping]
+          entryPoint = "http"
+          [kubernetes]
+            [kubernetes.ingressEndpoint]
+            publishedService = "kube-system/traefik"
+          [traefikLog]
+            format = "json"
+          [api]
+            entryPoint = "traefik"
+            dashboard = true
+          [metrics]
+            [metrics.prometheus]
+              entryPoint = "traefik"
+
+
+- name: Define a patch for traefik configmap
+  when: container_engine == "k3s" and network_controller is not defined
   copy:
     dest: "{{ ansible_env.HOME }}/traefik.cm.patch.yml"
     content: |
@@ -83,6 +135,10 @@
             format = "json"
           [api]
           entryPoint = "traefik"
+            dashboard = true
+          [metrics]
+            [metrics.prometheus]
+              entryPoint = "traefik"
 
 - name: Define a patch for traefik deployment
   copy:
@@ -102,6 +158,7 @@
                 protocol: TCP
 
 - name: Define a patch for traefik service
+  when: container_engine == "k3s" and network_controller is not defined
   copy:
     dest: "{{ ansible_env.HOME }}/traefik.svc.patch.yml"
     content: |
@@ -113,12 +170,15 @@
           targetPort: dashboard
 
 - name: Configure traefik deployment
+  when: container_engine == "k3s" and network_controller is not defined
   shell: kubectl patch deployment -n kube-system traefik -p "$(cat {{ ansible_env.HOME }}/traefik.deploy.patch.yml)"
 
 - name: Configure traefik configmap
+  when: container_engine == "k3s" and network_controller is not defined
   shell: kubectl patch configmap -n kube-system traefik -p "$(cat {{ ansible_env.HOME }}/traefik.cm.patch.yml)"
 
 - name: Configure traefik service
+  when: container_engine == "k3s" and network_controller is not defined
   shell: kubectl patch service -n kube-system traefik -p "$(cat {{ ansible_env.HOME }}/traefik.svc.patch.yml)"
 
 - include: traefik_add_route.yml
