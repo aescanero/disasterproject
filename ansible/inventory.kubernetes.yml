@@ -17,12 +17,15 @@ all:
       vars:
         domain: disasterproject.com
         network: "192.168.8"
+        network_controller: weave
+        storage: nfs-client
         ingress:
         - traefik
         addons:
         - name: externaldns
           publish:
           - route
+          - external
         - name: k8dash
           publish:
           - route
