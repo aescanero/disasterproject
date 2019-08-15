@@ -1,4 +1,21 @@
 ---
+- name: Check that metrics-server addon is installed
+  stat:
+    path: "{{ ansible_env.HOME }}/.metrics-server"
+  register: metrics_server_stat_result
+
+- name: install addon metrics-server
+  when: metrics_server_stat_result.stat.exists == false
+  include: "metrics-server.yml"
+
+- name: Mark addon as intalled
+  when: metrics_server_stat_result.stat.exists == false
+  run_once: true
+  copy:
+    dest: "{{ ansible_env.HOME }}/.metrics-server"
+    content: |
+      installed
+
 - name: Create namespace
   shell: kubectl create namespace k8dash --dry-run -o yaml | kubectl apply -f -
 

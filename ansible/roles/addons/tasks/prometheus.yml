@@ -1,0 +1,49 @@
+---
+- name: Install prometheus helm with klipper-helm
+  copy:
+    dest: "{{ ansible_env.HOME }}/prometheus.yml"
+    content: |
+      ---
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: prometheus
+      ---
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: helm-install-prometheus
+        namespace: kube-system
+      spec:
+        backoffLimit: 1000
+        completions: 1
+        parallelism: 1
+        template:
+          metadata:
+            labels:
+              jobname: helm-install-prometheus
+          spec:
+            containers:
+            - args:
+              - install
+              - --namespace
+              - prometheus
+              - --name
+              - prometheus
+              - stable/prometheus 
+              image: rancher/klipper-helm:v0.1.5
+              name: helm
+            serviceAccount: helm-install-sa
+            serviceAccountName: helm-install-sa
+            restartPolicy: OnFailure
+
+- name: Configure Service
+  shell: kubectl apply -f {{ ansible_env.HOME }}/prometheus.yml
+
+- name: Wait to raise prometheus
+  shell: kubectl get pods -n prometheus |grep prometheus|grep -v helm|grep Running
+  register: test
+  retries: 25
+  delay: 10
+  until: test.stdout != ""
+...
