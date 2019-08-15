@@ -1,21 +1,4 @@
 ---
-- name: Check that metrics-server addon is installed
-  stat:
-    path: "{{ ansible_env.HOME }}/.metrics-server"
-  register: metrics_server_stat_result
-
-- name: install addon metrics-server
-  when: metrics_server_stat_result.stat.exists == false
-  include: "metrics-server.yml"
-
-- name: Mark addon as intalled
-  when: metrics_server_stat_result.stat.exists == false
-  run_once: true
-  copy:
-    dest: "{{ ansible_env.HOME }}/.metrics-server"
-    content: |
-      installed
-
 - name: Create dashboard sa
   when: master_name is defined and master_name.stdout == inventory_hostname
   shell: "{{ item }}"
@@ -48,8 +31,8 @@
     name: ingress
     tasks_from: ingress_add_route
   vars:
-    service: dashboard
-    route: "/dashboard"
+    service: kubernetes-dashboard
+    route: "/"
     internalport: 443
     namespace: "kube-system"
 
