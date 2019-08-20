@@ -1,9 +1,9 @@
 ---
-- name: Create dashboard sa
+- name: Create dashboard
   when: master_name is defined and master_name.stdout == inventory_hostname
   shell: "{{ item }}"
   with_items:
-    - 'kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v1.10.1/src/deploy/recommended/kubernetes-dashboard.yaml'
+    - 'kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta3/aio/deploy/recommended.yaml'
 
 - name: Wait to raise dashboard
   shell: kubectl get pods -n kube-system |grep kubernetes-dashboard|grep Running
