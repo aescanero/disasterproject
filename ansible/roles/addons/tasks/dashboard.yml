@@ -6,7 +6,7 @@
     - 'kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta3/aio/deploy/recommended.yaml'
 
 - name: Wait to raise dashboard
-  shell: kubectl get pods -n kube-system |grep kubernetes-dashboard|grep Running
+  shell: kubectl get pods -n kubernetes-dashboard |grep kubernetes-dashboard|grep Running
   register: test
   retries: 25
   delay: 10
@@ -18,11 +18,11 @@
     name: services
     tasks_from: external
   vars:
-    service: dashboard
-    externalport: 80
-    internalport: 4654
+    service: kubernetes-dashboard
+    externalport: 443
+    internalport: 8443
     protocol: "TCP"
-    namespace: "kube-system"
+    namespace: "kubernetes-dashboard"
     label: "k8s-app"
 
 - name: Modify ingress route
@@ -34,16 +34,16 @@
     service: kubernetes-dashboard
     route: "/"
     internalport: 443
-    namespace: "kube-system"
+    namespace: "kubernetes-dashboard"
 
-- name: Obtain kube-system IP
+- name: Obtain kubernetes-dashboard IP
   when: addons_item.publish is defined and "external" in addons_item.publish
-  shell: kubectl get service -n kube-system dashboard -o jsonpath='{.status.loadBalancer.ingress[].ip}'
+  shell: kubectl get service -n kubernetes-dashboard dashboard -o jsonpath='{.status.loadBalancer.ingress[].ip}'
   register: dashboard_ip
 
-- name: Obtain kube-system Token
+- name: Obtain kubernetes-dashboard Token
   when: master_name is defined and master_name.stdout == inventory_hostname
-  shell: kubectl get secret `kubectl get secret|grep ^dashboard|awk '{print $1}'` -o jsonpath="{.data.token}"|base64 -d
+  shell: kubectl -n kubernetes-dashboard get secret `kubectl -n kubernetes-dashboard get secret|grep ^kubernetes-dashboard-token|awk '{print $1}'` -o jsonpath="{.data.token}"|base64 -d
   register: dashboard_token
 
 - name: HOW TO ACCESS TO DASHBOARD

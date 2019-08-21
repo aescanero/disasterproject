@@ -118,7 +118,7 @@
 
 - name: Obtain dashboard Token
   when: master_name is defined and master_name.stdout == inventory_hostname
-  shell: kubectl get secret `kubectl get secret|grep ^k8dash|awk '{print $1}'` -o jsonpath="{.data.token}"|base64 -d
+  shell: kubectl -n k8dash get secret `kubectl -n k8dash get secret|grep ^k8dash|awk '{print $1}'` -o jsonpath="{.data.token}"|base64 -d
   register: k8dash_token
 
 - name: HOW TO ACCESS TO DASHBOARD
