@@ -26,4 +26,19 @@
   command: hostnamectl set-hostname "{{ inventory_hostname }}"
   vars:
     ansible_host: "{{ vm_ip }}"
+
+- name: Update repositories cache and install nfs-client
+  apt:
+    name: nfs-common
+  when: ansible_os_family == "Debian"
+  vars:
+    ansible_host: "{{ vm_ip }}"
+
+- name: Update repositories cache and install nfs-client
+  yum:
+    name: nfs-utils
+    state: latest
+  when: ansible_os_family == "Redhat"
+  vars:
+    ansible_host: "{{ vm_ip }}"
 ...

@@ -1,0 +1,15 @@
+---
+- name: install octant
+  shell: "{{ item }}"
+  when: ansible_os_family == "Debian"
+  with_items:
+    - "curl -sLO https://github.com/vmware/octant/releases/download/v0.6.0/octant_0.6.0_Linux-64bit.deb"
+    - "dpkg -i octant_0.6.0_Linux-64bit.deb"
+
+- name: install octant
+  shell: 
+  when: ansible_os_family == "Redhat"
+  with_items:
+    - "curl -sLO https://github.com/vmware/octant/releases/download/v0.6.0/octant_0.6.0_Linux-64bit.deb"
+    - "rpm -i octant_0.6.0_Linux-64bit.rpm"
+...
