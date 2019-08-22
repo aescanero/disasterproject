@@ -30,13 +30,13 @@
 
 - name: Check Port
   when: lb_state.stdout != ""
-  shell: kubectl get -n {{ namespace }} service {{ service }}lb  -o jsonpath='{.spec.ports[?(@.port=="{{ externalport }}")]}'
+  shell: kubectl get -n {{ namespace }} service {{ service }}lb  -o jsonpath='{.spec.ports[?(@.port=={{ externalport }})]}'
   register: lbport_state
   ignore_errors: yes
 
-- fail:
-    msg: External Port {{ externalport }} in use in namespace {{ namespace }}
-  when: lb_state.stdout != "" and lbport_state.stdout != ""
+#- fail:
+#    msg: External Port {{ externalport }} in use in namespace {{ namespace }}
+#  when: lb_state.stdout != "" and lbport_state.stdout != ""
 
 - name: Apply Patch
   when: lb_state.stdout != "" and lbport_state.stdout == ""
