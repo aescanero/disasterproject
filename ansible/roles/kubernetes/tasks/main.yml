@@ -23,6 +23,7 @@
   apt:
     name: "{{ packages }}"
     update_cache: yes
+    force_apt_get: True
   vars:
     packages:
     - software-properties-common
@@ -55,7 +56,7 @@
   when: containerd_stat_result.stat.exists == false
   shell: curl -LSs https://storage.googleapis.com/cri-containerd-release/cri-containerd-cni-1.2.7.linux-amd64.tar.gz |tar --no-overwrite-dir -C / -xz
   args:
-    warn: no
+    warn: false
 
 - name: Check that the kubelet binary exists
   stat:

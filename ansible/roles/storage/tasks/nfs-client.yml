@@ -2,6 +2,7 @@
 - name: Update repositories cache and install nfs-server
   apt:
     name: nfs-kernel-server
+    force_apt_get: True
   when: ansible_os_family == "Debian"
   delegate_to: localhost
 

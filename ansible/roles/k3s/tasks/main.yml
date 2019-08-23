@@ -23,6 +23,7 @@
   apt:
     name: "{{ packages }}"
     update_cache: yes
+    force_apt_get: True
   vars:
     packages:
     - ebtables
@@ -58,7 +59,7 @@
   when: network_controller is defined
   shell: curl -LSs https://github.com/containernetworking/plugins/releases/download/v0.8.1/cni-plugins-linux-amd64-v0.8.1.tgz |tar --no-overwrite-dir -C /opt/cni/bin -xz
   args:
-    warn: no
+    warn: false
 
 - name: Check that the k3s binary exists
   stat:

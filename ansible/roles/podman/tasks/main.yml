@@ -3,6 +3,7 @@
   apt:
     name: "{{ packages }}"
     update_cache: yes
+    force_apt_get: True
   vars:
     packages:
     - ebtables
@@ -22,7 +23,7 @@
 - name: Install last CNI version
   shell: curl -LSs https://github.com/containernetworking/plugins/releases/download/v0.8.1/cni-plugins-linux-amd64-v0.8.1.tgz |tar --no-overwrite-dir -C /opt/cni/bin -xz
   args:
-    warn: no
+    warn: false
 
 - name: install the latest version of podman and buildah
   yum:
@@ -57,6 +58,7 @@
   apt:
     name: "{{ packages }}"
     update_cache: yes
+    force_apt_get: True
   vars:
     packages:
     - podman

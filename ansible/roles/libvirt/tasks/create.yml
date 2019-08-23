@@ -16,6 +16,7 @@
   apt:
     name: "{{ packages }}"
     update_cache: yes
+    force_apt_get: True
   vars:
     packages:
     - libvirt-daemon-system
@@ -52,6 +53,8 @@
 - name: Unarchive the image
   command: tar -zxf ~/.images/{{linux_flavor}}.box.tgz --exclude='./Vagrantfile' --exclude='./metadata.json' -C /var/lib/libvirt/images/
   when: vm_file_details.stat.exists == false
+  args:
+    warn: false
 
 - name: create image
   copy:

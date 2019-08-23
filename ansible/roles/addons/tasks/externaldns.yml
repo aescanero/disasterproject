@@ -313,6 +313,6 @@
   delegate_to: localhost
   lineinfile:
     path: /etc/resolv.conf
-    insertbefore: '^nameserver'
+    insertbefore: BOF
     line: 'nameserver {{ externaldns_ip.stdout }} #Added by Ansible External-dns role'
 ...

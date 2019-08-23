@@ -3,6 +3,7 @@
   apt:
     name: "{{ packages }}"
     update_cache: yes
+    force_apt_get: True
   vars:
     packages:
     - ebtables
@@ -18,6 +19,7 @@
   apt:
     name: "python3-pip"
     update_cache: yes
+    force_apt_get: True
   when: ansible_os_family == "Debian"
 
 - name: Update repositories cache and install python3-pip

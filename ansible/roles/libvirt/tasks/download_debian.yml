@@ -1,0 +1,13 @@
+---
+- name: Ansible check if image exists.
+  stat:
+    path: ~/.images/{{ linux_flavor }}.box.tgz
+  register: file_details
+
+- name: Download Debian Image
+  get_url:
+    url: https://app.vagrantup.com/debian/boxes/buster64/versions/10.0.0/providers/libvirt.box
+    dest: ~/.images/debian.box.tgz
+    mode: '0440'
+  when: file_details.stat.exists == false and linux_flavor == 'debian'
+...

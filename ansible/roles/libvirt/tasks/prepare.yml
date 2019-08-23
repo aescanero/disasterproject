@@ -25,25 +25,6 @@
     path: ~/.images
     state: directory
 
-- name: Ansible check if image exists.
-  run_once: true
-  stat:
-    path: ~/.images/{{ linux_flavor }}.box.tgz
-  register: file_details
-
-- name: Download Debian Image
-  run_once: true
-  get_url:
-    url: https://vagrantcloud.com/debian/boxes/stretch64/versions/9.9.0/providers/libvirt.box
-    dest: ~/.images/debian.box.tgz
-    mode: '0440'
-  when: file_details.stat.exists == false and linux_flavor == 'debian'
-
-- name: Download Centos Image
-  run_once: true
-  get_url:
-    url: http://cloud.centos.org/centos/7/vagrant/x86_64/images/CentOS-7.Libvirt.box
-    dest: ~/.images/centos.box.tgz
-    mode: '0440'
-  when: file_details.stat.exists == false and linux_flavor == 'centos'
+- name: include download
+  include: "download_{{ linux_flavor }}.yml"
 ...
