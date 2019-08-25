@@ -2,11 +2,10 @@
 - name: Check K3s
   when: container_engine == "k3s"
   fail:
-    msg: "RIO is ony supported in K3S enviroment"
+    msg: "RIO is only supported in K3S enviroment"
 
 - name: Deploy RIO
-  when: container_engine == "k3s" and master_name is defined and master_name.stdout == inventory_hostname
-  run_once: true
+  when: container_engine == "k3s"
   shell: "{{ item }}"
   with_items:
     - curl -sfL https://get.rio.io | sh -

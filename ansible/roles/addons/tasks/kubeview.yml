@@ -89,7 +89,6 @@
   register: kubeview_ip
 
 - name: Obtain dashboard Token
-  when: master_name is defined and master_name.stdout == inventory_hostname
   shell: kubectl get secret `kubectl get secret|grep ^kubeview|awk '{print $1}'` -o jsonpath="{.data.token}"|base64 -d
   register: kubeview_token
 

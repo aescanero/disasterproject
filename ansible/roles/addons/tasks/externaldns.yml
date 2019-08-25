@@ -1,6 +1,5 @@
 ---
 - name: Define PowerDNS
-  run_once: true
   vars:
     randomkey1: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters,digits') | b64encode }}"
     randomkey2: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters,digits') | b64encode }}"
@@ -197,7 +196,6 @@
         type: ClusterIP
 
 - name: Install External-DNS with PowerDNS
-  run_once: true
   shell: kubectl apply -f {{ ansible_env.HOME }}/powerdns.yml
 
 - name: Modify external LoadBalacer
@@ -225,7 +223,6 @@
     namespace: "external-dns"
 
 - name: Install external-dns helm with klipper-helm
-  run_once: true
   copy:
     dest: "{{ ansible_env.HOME }}/external-dns.yml"
     content: |
@@ -285,7 +282,6 @@
             restartPolicy: OnFailure
 
 - name: Install External-DNS with PowerDNS
-  run_once: true
   shell: "{{ item }}"
   with_items:
     - kubectl -n external-dns get secret s-external-dns -o yaml|grep -v namespace|kubectl -n kube-system apply -f -

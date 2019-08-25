@@ -10,7 +10,6 @@
 
 - name: Mark addon as intalled
   when: addon_stat_result.stat.exists == false
-  run_once: true
   copy:
     dest: "{{ ansible_env.HOME }}/.{{ addons_item.name }}"
     content: |

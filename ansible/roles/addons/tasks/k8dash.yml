@@ -10,7 +10,6 @@
 
 - name: Mark addon as intalled
   when: metrics_server_stat_result.stat.exists == false
-  run_once: true
   copy:
     dest: "{{ ansible_env.HOME }}/.metrics-server"
     content: |
@@ -117,7 +116,6 @@
   register: k8dash_ip
 
 - name: Obtain dashboard Token
-  when: master_name is defined and master_name.stdout == inventory_hostname
   shell: kubectl -n k8dash get secret `kubectl -n k8dash get secret|grep ^k8dash|awk '{print $1}'` -o jsonpath="{.data.token}"|base64 -d
   register: k8dash_token
 

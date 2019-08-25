@@ -1,6 +1,5 @@
 ---
 - name: Create dashboard
-  when: master_name is defined and master_name.stdout == inventory_hostname
   shell: "{{ item }}"
   with_items:
     - 'kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta3/aio/deploy/recommended.yaml'
@@ -42,7 +41,6 @@
   register: dashboard_ip
 
 - name: Obtain kubernetes-dashboard Token
-  when: master_name is defined and master_name.stdout == inventory_hostname
   shell: kubectl -n kubernetes-dashboard get secret `kubectl -n kubernetes-dashboard get secret|grep ^kubernetes-dashboard-token|awk '{print $1}'` -o jsonpath="{.data.token}"|base64 -d
   register: dashboard_token
 
