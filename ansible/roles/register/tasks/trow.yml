@@ -1,0 +1,63 @@
+---
+- name: Create trow
+  shell: "{{ item }}"
+  with_items:
+    - 'kubectl apply -f https://github.com/ContainerSolutions/trow/blob/master/install/trow.yaml'
+
+- name: Wait to raise trow
+  shell: kubectl get pods -n kubernetes-trow |grep kubernetes-trow|grep Running
+  register: test
+  retries: 25
+  delay: 10
+  until: test.stdout != ""
+
+- name: Modify external LoadBalacer
+  when: registers_item.publish is defined and "external" in registers_item.publish
+  include_role:
+    name: services
+    tasks_from: external
+  vars:
+    service: kubernetes-trow
+    externalport: 443
+    internalport: 8443
+    protocol: "TCP"
+    namespace: "kubernetes-trow"
+    label: "k8s-app"
+
+- name: Modify ingress route
+  when: registers_item.publish is defined and "route" in registers_item.publish
+  include_role:
+    name: ingress
+    tasks_from: ingress_add_route
+  vars:
+    service: kubernetes-trow
+    route: "/"
+    internalport: 443
+    namespace: "kubernetes-trow"
+
+- name: Obtain kubernetes-trow IP
+  when: registers_item.publish is defined and "external" in registers_item.publish
+  shell: kubectl get service -n kubernetes-trow kubernetes-trowlb -o jsonpath='{.status.loadBalancer.ingress[].ip}'
+  register: trow_ip
+
+- name: Obtain kubernetes-trow Token
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  shell: kubectl -n kubernetes-trow get secret `kubectl -n kubernetes-trow get secret|grep ^kubernetes-trow-token|awk '{print $1}'` -o jsonpath="{.data.token}"|base64 -d
+  register: trow_token
+
+- name: HOW TO ACCESS TO DASHBOARD
+  when: registers_item.publish is defined and "external" in registers_item.publish
+  debug:
+    msg: |
+      Things left to do:
+        - Access to https://{{trow_ip.stdout}}
+        - Use the next token to access trow: {{trow_token.stdout}}
+
+- name: HOW TO ACCESS TO DASHBOARD
+  when: registers_item.publish is defined and "route" in registers_item.publish
+  debug:
+    msg: |
+      Things left to do:
+        - Access to https://trow.{{ domain }}
+        - Use the next token to access trow: {{trow_token.stdout}}
+...

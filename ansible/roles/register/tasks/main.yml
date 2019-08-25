@@ -1,0 +1,18 @@
+---
+- name: Check that register is installed
+  stat:
+    path: "{{ ansible_env.HOME }}/.{{ registers_item.name }}"
+  register: register_stat_result
+
+- name: install register
+  when: register_stat_result.stat.exists == false
+  include: "{{ registers_item.name }}.yml"
+
+- name: Mark register as intalled
+  when: register_stat_result.stat.exists == false
+  run_once: true
+  copy:
+    dest: "{{ ansible_env.HOME }}/.{{ registers_item.name }}"
+    content: |
+      installed
+...
