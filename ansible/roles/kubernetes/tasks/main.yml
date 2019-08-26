@@ -184,7 +184,7 @@
   register: kubeadmex_stat_result
 
 - name: execute kubeadm
-  shell: kubeadm init --service-dns-domain {{ domain }}--apiserver-advertise-address {{ vm_ip }} --pod-network-cidr=10.244.0.0/16 --cri-socket /run/containerd/containerd.sock  | grep "kubeadm join"|grep token
+  shell: kubeadm init --service-dns-domain {{ domain }} --apiserver-advertise-address {{ vm_ip }} --pod-network-cidr=10.244.0.0/16 --cri-socket /run/containerd/containerd.sock  | grep "kubeadm join"|grep token
   register: secret_token
   run_once: true
   when: kubeadmex_stat_result.stat.exists == false and master_name is defined and master_name.stdout == inventory_hostname
@@ -194,8 +194,8 @@
   run_once: true
   shell: "{{ item }}"
   with_items:
-    - mkdir  {{ ansible_env.HOME }}/.kube
-    - cp -i /etc/kubernetes/admin.conf {{ ansible_env.HOME }}/.kube/config
+    - "mkdir  {{ ansible_env.HOME }}/.kube"
+    - "cp -i /etc/kubernetes/admin.conf {{ ansible_env.HOME }}/.kube/config"
     - kubectl taint nodes {{ inventory_hostname }} node-role.kubernetes.io/master:NoSchedule-
     - kubectl apply -f "https://raw.githubusercontent.com/danderson/metallb/master/manifests/metallb.yaml"
 
@@ -231,11 +231,10 @@
   until: test.stdout != ""
 
 - name: Install storage_controller
-  when: storage is defined and master_name is defined and master_name.stdout == inventory_hostname
-  run_once: true
+  when: storage is defined
   include_role:
     name: storage
-    tasks_from: "{{ storage }}"
+    tasks_from: "main"
 
 - name: Define a default external pool for Kubernetes
   when: master_name is defined and master_name.stdout == inventory_hostname
@@ -270,7 +269,7 @@
   shell: "{{ item }}"
   with_items:
     - kubectl apply -f "https://raw.githubusercontent.com/danderson/metallb/master/manifests/metallb.yaml"
-    - kubectl apply -f {{ ansible_env.HOME }}/pool.yml
+    - "kubectl apply -f {{ ansible_env.HOME }}/pool.yml"
 
 - name: Install default ingress
   when: ingress is not defined and master_name is defined and master_name.stdout == inventory_hostname

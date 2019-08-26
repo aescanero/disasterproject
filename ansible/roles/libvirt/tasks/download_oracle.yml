@@ -4,12 +4,12 @@
     path: "{{ ansible_env.HOME }}/.images/{{ linux_flavor }}.box.tgz"
   register: file_details
 
-- name: Download Debian Image
+- name: Download Oracle Image
   get_url:
-    url: https://app.vagrantup.com/debian/boxes/buster64/versions/10.0.0/providers/libvirt.box
-    dest: "{{ ansible_env.HOME }}/.images/debian.box.tgz"
+    url: https://app.vagrantup.com/generic/boxes/oracle8/versions/1.9.22/providers/libvirt.box
+    dest: "{{ ansible_env.HOME }}/.images/oracle.box.tgz"
     mode: '0440'
-  when: file_details.stat.exists == false and linux_flavor == 'debian'
+  when: file_details.stat.exists == false and linux_flavor == 'oracle'
 
 - name: Ansible check if vm image exists.
   stat:

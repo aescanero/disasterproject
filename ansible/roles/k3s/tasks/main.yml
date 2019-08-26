@@ -193,7 +193,7 @@
   when: master_name is defined and master_name.stdout == inventory_hostname and k3s_stat_result.stat.exists == false
   run_once: true
   file:
-    path: ~/.kube
+    path: "{{ ansible_env.HOME }}/.kube"
     state: directory
 
 - name: Configure config for kubectl
@@ -250,7 +250,7 @@
   shell: "{{ item }}"
   with_items:
     - kubectl apply -f "https://raw.githubusercontent.com/danderson/metallb/master/manifests/metallb.yaml"
-    - kubectl apply -f {{ ansible_env.HOME }}/pool.yml
+    - "kubectl apply -f {{ ansible_env.HOME }}/pool.yml"
 
 - name: Install default ingress
   when: ingress is not defined and master_name is defined and master_name.stdout == inventory_hostname

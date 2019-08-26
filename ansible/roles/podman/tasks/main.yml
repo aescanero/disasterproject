@@ -20,8 +20,15 @@
     path: /opt/cni/bin
     state: directory
 
+- name: Ansible check if CNI was installed
+  stat:
+    path: /opt/cni/bin/flannel
+  register: cni_details
+
+
 - name: Install last CNI version
   shell: curl -LSs https://github.com/containernetworking/plugins/releases/download/v0.8.1/cni-plugins-linux-amd64-v0.8.1.tgz |tar --no-overwrite-dir -C /opt/cni/bin -xz
+  when: cni_details.stat.exists == false
   args:
     warn: false
 
@@ -33,13 +40,13 @@
     packages:
     - podman
     - buildah
-  when: ansible_os_family == "Redhat" and ansible_distribution_major_version == 7
+  when: ( ansible_os_family == "Redhat" and ansible_distribution_major_version == "7") or ansible_distribution == "OracleLinux"
 
 - name: install the latest version of container-tools
   yum:
     name: container-tools
     state: latest
-  when: ansible_os_family == "Redhat" and ansible_distribution_major_version == 8
+  when: ansible_distribution == "RedHat" and ansible_distribution_major_version == "8"
 
 - name: Add podman key repository
   apt_key:

@@ -1,4 +1,10 @@
 ---
+- name: Obtain host information
+  setup:
+  vars:
+    warn: no
+  run_once: true
+
 - name: obtener info de la red
   run_once: true
   virt_net:
@@ -6,7 +12,6 @@
     name: "{{ domain.split('.')[0] }}"
   register: net_ok
   ignore_errors: yes
-  delegate_to: localhost
 
 - include_tasks: create_net.yml
   run_once: true
@@ -17,12 +22,11 @@
   virt_net:
     state: active
     name: "{{ domain.split('.')[0] }}"
-  delegate_to: localhost
 
 - name: Creates directory
   run_once: true
   file:
-    path: ~/.images
+    path: "{{ ansible_env.HOME }}/.images"
     state: directory
 
 - name: include download

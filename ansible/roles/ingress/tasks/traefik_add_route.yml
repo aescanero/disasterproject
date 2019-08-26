@@ -30,7 +30,7 @@
                 servicePort: {{ internalport }}
 
 - name: Create Ingress for namespace
-  shell: kubectl apply -n  {{ namespace }} -f {{ ansible_env.HOME }}/traefik-ingress.yml
+  shell: "kubectl apply -n  {{ namespace }} -f {{ ansible_env.HOME }}/traefik-ingress.yml"
   when: ingress_state.stdout == ""
 
 - name: Check Host

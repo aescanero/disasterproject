@@ -1,0 +1,18 @@
+---
+- name: Update repositories cache and install nfs-client
+  apt:
+    name: nfs-common
+    force_apt_get: True
+  when: ansible_os_family == "Debian"
+  vars:
+    ansible_host: "{{ vm_ip }}"
+    warn: false
+
+- name: Update repositories cache and install nfs-client
+  yum:
+    name: nfs-utils
+    state: latest
+  when: ansible_os_family == "RedHat"
+  vars:
+    ansible_host: "{{ vm_ip }}"
+...

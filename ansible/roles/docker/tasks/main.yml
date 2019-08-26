@@ -1,4 +1,8 @@
 ---
+- fail:
+    msg: "Oracle Linux is not supported"
+  when: ansible_distribution == "OracleLinux"
+
 - name: Update repositories cache and install dirmngr and curl packages
   apt:
     name: "{{ packages }}"
@@ -22,20 +26,20 @@
     force_apt_get: True
   when: ansible_os_family == "Debian"
 
-- name: Update repositories cache and install python3-pip
-  yum:
-    name: "python36-pip"
-    state: latest
-  when: ansible_os_family == "Redhat"
-
 - name: Install last Docker version
   shell: curl -sSL https://get.docker.com/ | sh
   args:
     warn: no
 
-- name: Install Docker Compose
+- name: Install Docker Compose from pip
   shell: "{{ item }}"
   with_items:
     - 'pip3 install docker-compose'
+  when: ansible_os_family == "Debian"
 
+- name: Update repositories cache and install docker compose
+  yum:
+    name: "docker-compose"
+    state: latest
+  when: ansible_os_family == "RedHat"
 ...

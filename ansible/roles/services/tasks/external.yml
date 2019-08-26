@@ -25,7 +25,7 @@
         type: LoadBalancer
 
 - name: Create service for namespace
-  shell: kubectl apply -n  {{ namespace }} -f {{ ansible_env.HOME }}/service.yml
+  shell: "kubectl apply -n  {{ namespace }} -f {{ ansible_env.HOME }}/service.yml"
   when: lb_state.stdout == ""
 
 - name: Check Port

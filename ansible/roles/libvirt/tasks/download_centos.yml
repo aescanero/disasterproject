@@ -1,13 +1,33 @@
 ---
 - name: Ansible check if image exists.
   stat:
-    path: ~/.images/{{ linux_flavor }}.box.tgz
+    path: "{{ ansible_env.HOME }}/.images/{{ linux_flavor }}.box.tgz"
   register: file_details
 
 - name: Download Centos Image
   get_url:
     url: http://cloud.centos.org/centos/7/vagrant/x86_64/images/CentOS-7.Libvirt.box
-    dest: ~/.images/centos.box.tgz
+    dest: "{{ ansible_env.HOME }}/.images/centos.box.tgz"
     mode: '0440'
-  when: file_details.stat.exists == false and linux_flavor == 'centos'
+  when: file_details.stat.exists == false
+
+- name: Ansible check if vm image exists.
+  stat:
+    path: "/var/lib/libvirt/images/{{ inventory_hostname }}.qcow2"
+  register: vm_file_details
+
+- name: Ansible check if base image exists.
+  stat:
+    path: "/var/lib/libvirt/images/box.{{linux_flavor}}.img"
+  register: image_details
+
+- name: Unarchive the image
+  shell: "tar -zxf {{ ansible_env.HOME }}/.images/{{linux_flavor}}.box.tgz --exclude='./Vagrantfile' --exclude='./metadata.json' -C /var/lib/libvirt/images/"
+  when: vm_file_details.stat.exists == false and image_details.stat.exists == false
+  args:
+    warn: false
+
+- name: rename image
+  shell: mv /var/lib/libvirt/images/box.img /var/lib/libvirt/images/box.{{linux_flavor}}.img
+  when: vm_file_details.stat.exists == false and image_details.stat.exists == false
 ...

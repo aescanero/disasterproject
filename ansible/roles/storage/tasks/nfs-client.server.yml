@@ -1,0 +1,59 @@
+---
+- name: Update repositories cache and install nfs-server
+  apt:
+    name: nfs-kernel-server
+    force_apt_get: True
+  when: ansible_os_family == "Debian"
+
+- name: Update repositories cache and install nfs-server
+  yum:
+    name: nfs-utils
+    state: latest
+  when: ansible_os_family == "Redhat"
+
+- name: Creates directory nfsshare
+  file:
+    path: /var/nfs/share
+    state: directory
+    mode: '0777'
+
+- name: Make sure old nfs conf is not in the /etc/exports configuration
+  lineinfile:
+    path: /etc/exports
+    state: absent
+    regexp: '#Added by Ansible nfs client role'
+
+- name: Add a line to exports
+  lineinfile:
+    path: /etc/exports
+    line: '/var/nfs/share {{ network }}.0/24(rw,sync,no_root_squash,no_subtree_check) #Added by Ansible nfs client role'
+
+- name: enable and start nfs service
+  when: ansible_os_family == "Debian"
+  systemd:
+    name: "{{ item }}"
+    daemon_reload: yes
+    enabled: yes
+    masked: no
+    state: started
+  with_items:
+    - nfs-server
+    - nfs-blkmap
+
+- name: enable and start nfs service
+  when: ansible_os_family == "Redhat"
+  systemd:
+    name: "{{ item }}"
+    daemon_reload: yes
+    enabled: yes
+    masked: no
+    state: started
+  with_items:
+    - nfs-server
+    - rpcbind
+    - nfs-lock
+    - nfs-idmap
+
+- name: Force config reload
+  shell: exportfs -a
+...
