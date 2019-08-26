@@ -40,7 +40,7 @@
             restartPolicy: OnFailure
 
 - name: Configure Service
-  shell: kubectl apply -f {{ ansible_env.HOME }}/weave-scope.yml
+  shell: "kubectl apply -f {{ ansible_env.HOME }}/weave-scope.yml"
 
 - name: Modify ingress route
   when: addons_item.publish is defined and "route" in addons_item.publish

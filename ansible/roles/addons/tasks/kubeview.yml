@@ -50,7 +50,7 @@
               - containerPort: 8000
 
 - name: Configure Service
-  shell: kubectl apply -n kubeview -f {{ ansible_env.HOME }}/kubeview.yml
+  shell: "kubectl apply -n kubeview -f {{ ansible_env.HOME }}/kubeview.yml"
 
 - name: Wait to raise kubeview
   shell: kubectl get pods -n kubeview |grep kubeview|grep Running

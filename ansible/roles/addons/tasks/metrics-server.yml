@@ -38,7 +38,7 @@
             restartPolicy: OnFailure
 
 - name: Configure Service
-  shell: kubectl apply -f {{ ansible_env.HOME }}/metrics-server.yml
+  shell: "kubectl apply -f {{ ansible_env.HOME }}/metrics-server.yml"
 
 - name: Wait to raise metrics-server
   shell: kubectl get pods -n metrics-server |grep metrics-server|grep -v helm|grep Running

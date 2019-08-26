@@ -38,7 +38,7 @@
             restartPolicy: OnFailure
 
 - name: Configure Service
-  shell: kubectl apply -f {{ ansible_env.HOME }}/prometheus.yml
+  shell: "kubectl apply -f {{ ansible_env.HOME }}/prometheus.yml"
 
 - name: Wait to raise prometheus
   shell: kubectl get pods -n prometheus |grep prometheus|grep -v helm|grep Running

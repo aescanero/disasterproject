@@ -52,7 +52,7 @@
               - containerPort: 80
 
 - name: Configure Service
-  shell: kubectl apply -n kubernator -f {{ ansible_env.HOME }}/kubernator.yml
+  shell: "kubectl apply -n kubernator -f {{ ansible_env.HOME }}/kubernator.yml"
 
 - name: Wait to raise kubernator
   shell: kubectl get pods -n kubernator |grep kubernator|grep Running

@@ -77,7 +77,7 @@
               'beta.kubernetes.io/os': linux
 
 - name: Configure Service
-  shell: kubectl apply -n k8dash -f {{ ansible_env.HOME }}/k8dash.yml
+  shell: "kubectl apply -n k8dash -f {{ ansible_env.HOME }}/k8dash.yml"
 
 - name: Wait to raise k8dash
   shell: kubectl get pods -n k8dash |grep k8dash|grep Running

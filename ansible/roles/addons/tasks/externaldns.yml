@@ -196,7 +196,7 @@
         type: ClusterIP
 
 - name: Install External-DNS with PowerDNS
-  shell: kubectl apply -f {{ ansible_env.HOME }}/powerdns.yml
+  shell: "kubectl apply -f {{ ansible_env.HOME }}/powerdns.yml"
 
 - name: Modify external LoadBalacer
   when: addons_item.publish is defined and "external" in addons_item.publish
@@ -285,7 +285,7 @@
   shell: "{{ item }}"
   with_items:
     - kubectl -n external-dns get secret s-external-dns -o yaml|grep -v namespace|kubectl -n kube-system apply -f -
-    - kubectl apply -f {{ ansible_env.HOME }}/external-dns.yml
+    - "kubectl apply -f {{ ansible_env.HOME }}/external-dns.yml"
 
 - name: Wait to raise external-dns
   shell: kubectl get pods -n external-dns |grep ^external-dns|grep Running

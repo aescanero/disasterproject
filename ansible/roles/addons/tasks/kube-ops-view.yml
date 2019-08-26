@@ -68,7 +68,7 @@
                 protocol: TCP
 
 - name: Apply and Deploy
-  shell: kubectl apply -n kube-ops-view -f {{ ansible_env.HOME }}/kube-ops-view.yml
+  shell: "kubectl apply -n kube-ops-view -f {{ ansible_env.HOME }}/kube-ops-view.yml"
 
 - name: Wait to raise kube-ops-view
   shell: kubectl get pods -n kube-ops-view |grep kube-ops-view|grep Running
