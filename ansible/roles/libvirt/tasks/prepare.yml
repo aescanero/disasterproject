@@ -31,4 +31,11 @@
 
 - name: include download
   include: "download_{{ linux_flavor }}.yml"
+  
+- name: Prepare_local_storage
+  when: storage is defined
+  run_once: true
+  include_role:
+    name: storage
+    tasks_from: "{{ storage }}.server"
 ...

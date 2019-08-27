@@ -1,4 +1,23 @@
 ---
+- name: Remove swap info in /etc/fstab
+  when: ansible_os_family == "RedHat" and ansible_distribution_major_version == "8"
+  lineinfile:
+    path: /etc/fstab
+    state: absent
+    regexp: 'swap'
+
+- name: disable and stop firewalld service
+  when: ansible_os_family == "RedHat" and ansible_distribution_major_version == "8"
+  systemd:
+    name: firewalld
+    enabled: no
+    masked: no
+    state: stopped
+
+- name: Disable SWAP
+  shell: swapoff -a
+  when: ansible_os_family == "RedHat" and ansible_distribution_major_version == "8"
+
 - name: Add kernel modules
   modprobe:
     name: "{{ item }}"
@@ -48,7 +67,7 @@
     - libseccomp
     - conntrack-tools
     - ipvsadm
-  when: ansible_os_family == "Redhat"
+  when: ansible_os_family == "RedHat"
 
 - name: Creates directory cni
   file:

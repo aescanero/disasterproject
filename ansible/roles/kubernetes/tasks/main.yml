@@ -1,4 +1,23 @@
 ---
+- name: Remove swap info in /etc/fstab
+  when: ansible_os_family == "RedHat" and ansible_distribution_major_version == "8"
+  lineinfile:
+    path: /etc/fstab
+    state: absent
+    regexp: 'swap'
+
+- name: disable and stop firewalld service
+  when: ansible_os_family == "RedHat" and ansible_distribution_major_version == "8"
+  systemd:
+    name: firewalld
+    enabled: no
+    masked: no
+    state: stopped
+
+- name: Disable SWAP
+  shell: swapoff -a
+  when: ansible_os_family == "RedHat" and ansible_distribution_major_version == "8"
+
 - name: Add kernel modules
   modprobe:
     name: "{{ item }}"
@@ -40,7 +59,7 @@
     packages:
     - conntrack-tools
     - ipvsadm
-  when: ansible_os_family == "Redhat"
+  when: ansible_os_family == "RedHat"
 
 - name: Creates directory cni
   file:
@@ -184,7 +203,7 @@
   register: kubeadmex_stat_result
 
 - name: execute kubeadm
-  shell: kubeadm init --service-dns-domain {{ domain }} --apiserver-advertise-address {{ vm_ip }} --pod-network-cidr=10.244.0.0/16 --cri-socket /run/containerd/containerd.sock  | grep "kubeadm join"|grep token
+  shell: PATH=$PATH:/usr/local/bin kubeadm init --service-dns-domain {{ domain }} --apiserver-advertise-address {{ vm_ip }} --pod-network-cidr=10.244.0.0/16 --cri-socket /run/containerd/containerd.sock  | grep "kubeadm join"|grep token
   register: secret_token
   run_once: true
   when: kubeadmex_stat_result.stat.exists == false and master_name is defined and master_name.stdout == inventory_hostname

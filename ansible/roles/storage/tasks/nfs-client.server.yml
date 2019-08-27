@@ -9,7 +9,7 @@
   yum:
     name: nfs-utils
     state: latest
-  when: ansible_os_family == "Redhat"
+  when: ansible_os_family == "RedHat"
 
 - name: Creates directory nfsshare
   file:
@@ -41,7 +41,7 @@
     - nfs-blkmap
 
 - name: enable and start nfs service
-  when: ansible_os_family == "Redhat"
+  when: ansible_os_family == "RedHat"
   systemd:
     name: "{{ item }}"
     daemon_reload: yes
