@@ -25,6 +25,10 @@
   with_items:
     - overlay
     - br_netfilter
+    - ip_vs
+    - ip_vs_rr
+    - ip_vs_wrr
+    - ip_vs_sh
 
 - sysctl:
     name: net.ipv4.ip_forward
@@ -37,6 +41,19 @@
     value: "1"
     sysctl_set: yes
     state: present
+
+- name: Load modules at boot
+  when: ansible_os_family == "RedHat"
+  copy:
+    dest: /etc/sysconfig/modules/kubernetes.modules
+    mode: "0755"
+    content: |
+      #!/bin/sh
+      modprobe ip_vs
+      modprobe ip_vs_rr
+      modprobe ip_vs_wrr
+      modprobe ip_vs_sh
+      modprobe ip_tables
 
 - name: Update repositories cache and install dirmngr and curl packages
   apt:
@@ -52,6 +69,7 @@
     - libseccomp2
     - conntrack
     - ipvsadm
+    - iproute2
   when: ansible_os_family == "Debian"
 
 - name: Update repositories cache and install kubernetes dependences
@@ -67,6 +85,7 @@
     - libseccomp
     - conntrack-tools
     - ipvsadm
+    - iproute-tc
   when: ansible_os_family == "RedHat"
 
 - name: Creates directory cni
@@ -220,8 +239,6 @@
   run_once: true
   shell: cp -i /etc/rancher/k3s/k3s.yaml "{{ ansible_env.HOME }}"/.kube/config
 
-- debug: var=network_controller
-
 - name: Install network_controller
   when: network_controller is defined and master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
@@ -234,7 +251,7 @@
   run_once: true
   include_role:
     name: storage
-    tasks_from: "{{ storage }}"
+    tasks_from: "main"
 
 - name: Define a default external pool for Kubernetes
   when: master_name is defined and master_name.stdout == inventory_hostname and k3s_stat_result.stat.exists == false

@@ -25,6 +25,11 @@
   with_items:
     - overlay
     - br_netfilter
+    - ip_vs
+    - ip_vs_rr
+    - ip_vs_wrr
+    - ip_vs_sh
+    - ip_tables
 
 - sysctl:
     name: net.ipv4.ip_forward
@@ -38,6 +43,19 @@
     sysctl_set: yes
     state: present
 
+- name: Load modules at boot
+  when: ansible_os_family == "RedHat"
+  copy:
+    dest: /etc/sysconfig/modules/kubernetes.modules
+    mode: "0755"
+    content: |
+      #!/bin/sh
+      modprobe ip_vs
+      modprobe ip_vs_rr
+      modprobe ip_vs_wrr
+      modprobe ip_vs_sh
+      modprobe ip_tables
+
 - name: Update repositories cache and install dirmngr and curl packages
   apt:
     name: "{{ packages }}"
@@ -49,6 +67,9 @@
     - dirmngr
     - conntrack
     - ipvsadm
+    - curl
+    - socat
+    - iproute2
   when: ansible_os_family == "Debian"
 
 - name: Update repositories cache and install kubernetes dependences
@@ -59,6 +80,9 @@
     packages:
     - conntrack-tools
     - ipvsadm
+    - curl
+    - socat
+    - iproute-tc
   when: ansible_os_family == "RedHat"
 
 - name: Creates directory cni
@@ -297,8 +321,7 @@
     name: ingress
     tasks_from: main
   vars:
-    ingress_item:
-      name: "traefik"
+    ingress_item: "traefik"
   
 - name: Install ingress
   when: ingress is defined and master_name is defined and master_name.stdout == inventory_hostname
@@ -405,7 +428,12 @@
 
 - name: Wait to raise kubernetes nodes
   pause:
-    seconds: 20
+    seconds: 40
+
+- name: "Fix for Oracle Linux 8 and kube-proxy 1.15.3"
+  shell: kubectl get pods -A|grep kube-proxy|awk '{print $2}'|while read l;do echo "" |kubectl -n kube-system exec -i $l -- /bin/sh -c "iptables -t nat -N KUBE-MARK-DROP;iptables -t nat -A KUBE-MARK-DROP -j MARK --set-xmark 0x8000/0x8000";echo $l;done
+  when: master_name is defined and master_name.stdout == inventory_hostname and ansible_os_family == "RedHat" and ansible_distribution_major_version == "8"
+  run_once: true
 
 - name: Install addons
   when: addons is defined and master_name is defined and master_name.stdout == inventory_hostname

@@ -9,7 +9,7 @@
     url: https://app.vagrantup.com/generic/boxes/oracle8/versions/1.9.22/providers/libvirt.box
     dest: "{{ ansible_env.HOME }}/.images/oracle.box.tgz"
     mode: '0440'
-  when: file_details.stat.exists == false and linux_flavor == 'oracle'
+  when: file_details.stat.exists == false
 
 - name: Ansible check if vm image exists.
   stat:
@@ -29,5 +29,6 @@
 
 - name: rename image
   shell: mv /var/lib/libvirt/images/box.img /var/lib/libvirt/images/box.{{linux_flavor}}.img
+  run_once: true
   when: vm_file_details.stat.exists == false and image_details.stat.exists == false
 ...

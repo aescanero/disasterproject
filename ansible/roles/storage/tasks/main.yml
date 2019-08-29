@@ -1,5 +1,5 @@
 ---
-- name: Configure VMs
+- name: Configure VMs Storage
   include: "{{ storage }}.nodes.yml"
 
 - name: Install storage_controller

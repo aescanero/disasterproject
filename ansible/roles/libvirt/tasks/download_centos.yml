@@ -29,5 +29,6 @@
 
 - name: rename image
   shell: mv /var/lib/libvirt/images/box.img /var/lib/libvirt/images/box.{{linux_flavor}}.img
+  run_once: true
   when: vm_file_details.stat.exists == false and image_details.stat.exists == false
 ...
