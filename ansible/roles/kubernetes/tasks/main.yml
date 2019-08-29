@@ -432,7 +432,7 @@
 
 - name: "Fix for Oracle Linux 8 and kube-proxy 1.15.3"
   shell: kubectl get pods -A|grep kube-proxy|awk '{print $2}'|while read l;do echo "" |kubectl -n kube-system exec -i $l -- /bin/sh -c "iptables -t nat -N KUBE-MARK-DROP;iptables -t nat -A KUBE-MARK-DROP -j MARK --set-xmark 0x8000/0x8000";echo $l;done
-  when: master_name is defined and master_name.stdout == inventory_hostname and ansible_os_family == "RedHat" and ansible_distribution_major_version == "8"
+  when: master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
 
 - name: Install addons
