@@ -29,6 +29,7 @@
     - ip_vs_rr
     - ip_vs_wrr
     - ip_vs_sh
+    - ip_tables
 
 - sysctl:
     name: net.ipv4.ip_forward

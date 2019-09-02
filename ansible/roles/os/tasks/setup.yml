@@ -39,8 +39,8 @@
   lineinfile:
     path: /etc/hosts
     insertbefore: BOF
-    line: '{{ hostvars[item].ansible_default_ipv4.address }} {{ hostvars[item].ansible_facts.hostname }} {{ hostvars[item].ansible_facts.fqdn }} #Added by Ansible os role'
-  with_items: "{{ hostvars }}"
+    line: '{{ hostvars[item].ansible_default_ipv4.address }} {{ item }} {{ item }}.{{ domain }} #Added by Ansible os role'
+  with_items: "{{ groups.vms }}"
   vars:
     ansible_host: "{{ vm_ip }}"
 

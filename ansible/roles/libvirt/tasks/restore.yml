@@ -16,4 +16,9 @@
 
 - name: restore vm
   shell: virsh restore /var/lib/libvirt/qemu/save/{{ inventory_hostname }}.save --running
+
+- name: remove save image
+  file:
+   path: /var/lib/libvirt/qemu/save/{{ inventory_hostname }}.save
+   state: absent
 ...
