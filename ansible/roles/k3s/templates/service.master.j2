@@ -1,0 +1,23 @@
+[Unit]
+  Description=k3s
+
+[Service]
+{% if network_controller is defined and network_controller != 'flannel' %}
+  {% if ingress is defined and ingress['traefik'] is not defined%}
+  ExecStart=/usr/bin/k3s server --service-cidr 10.43.0.0/16 --cluster-domain {{ domain }} --no-flannel --no-deploy servicelb --no-deploy traefik --bind-address {{ vm_ip }}
+  {% else %}
+  ExecStart=/usr/bin/k3s server --service-cidr 10.43.0.0/16 --cluster-domain {{ domain }} --no-flannel --no-deploy servicelb --bind-address {{ vm_ip }}
+  {% endif %}
+{% else %}
+  {% if ingress is defined and ingress['traefik'] is not defined%}
+  ExecStart=/usr/bin/k3s server --service-cidr 10.43.0.0/16 --cluster-domain {{ domain }} --no-deploy servicelb --no-deploy traefik --bind-address {{ vm_ip }}
+  {% else %}
+  ExecStart=/usr/bin/k3s server --service-cidr 10.43.0.0/16 --cluster-domain {{ domain }} --no-deploy servicelb --bind-address {{ vm_ip }}
+  {% endif %}
+{% endif %}
+  Restart=always
+  StartLimitInterval=0
+  RestartSec=10
+ 
+[Install]
+  WantedBy=multi-user.target

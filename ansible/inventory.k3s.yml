@@ -22,6 +22,7 @@ all:
         - traefik
         addons:
         - name: externaldns
+          storage: nfs
           publish:
           - route
           - external
@@ -40,3 +41,4 @@ all:
         - name: kubeview
           publish:
           - route
+        - name: octant

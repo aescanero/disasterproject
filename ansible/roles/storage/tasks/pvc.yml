@@ -1,0 +1,16 @@
+---
+- name: Create PVC for service {{ service }}
+  shell: |
+    cat <<EOF |kubectl -n {{ namespace }} apply -f -
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: pvc-{{ namespace }}-{{ service }}
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+    EOF
+...

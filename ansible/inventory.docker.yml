@@ -1,0 +1,14 @@
+all:
+  children:
+    vms:
+      hosts:
+        docker:
+          memory: 3096
+          vcpus: 2
+          vm_ip: "192.168.8.2"
+          linux_flavor: "debian"
+          container_engine: "docker"
+      vars:
+        domain: disasterproject.com
+        network: "192.168.8"
+

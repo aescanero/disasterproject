@@ -1,0 +1,15 @@
+[Unit]
+  Description=k3s
+
+[Service]
+{% if network_controller is defined and network_controller != 'flannel' %}
+  ExecStart=/usr/bin/k3s agent --no-flannel --server https://{{ master_name.stdout }}:6443 --token {{ token.content |  b64decode }}
+{% else %}
+  ExecStart=/usr/bin/k3s agent --server https://{{ master_name.stdout }}:6443 --token {{ token.content |  b64decode }}
+{% endif %}
+  Restart=always
+  StartLimitInterval=0
+  RestartSec=10
+ 
+[Install]
+  WantedBy=multi-user.target
