@@ -1,9 +1,9 @@
 ---
 - name: Define PowerDNS
   vars:
-    randomkey1: "{{ ansible_date_time.iso8601_micro | random | to_uuid }}"
-    randomkey2: "{{ ansible_date_time.iso8601_micro | random | to_uuid }}"
-    randomkey3: "{{ ansible_date_time.iso8601_micro | random | to_uuid }}"
+    randomkey1: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters,digits') | to_uuid | b64encode }}"
+    randomkey2: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters,digits') | to_uuid | b64encode }}"
+    randomkey3: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters,digits') | to_uuid | b64encode }}"
   copy:
     dest: "{{ ansible_env.HOME }}/powerdns.yml"
     content: "{{ lookup('template', 'powerdns.j2') }}"
@@ -95,7 +95,7 @@
               - name: pdns_apikey
                 valueFrom:
                   secretKeyRef:
-                    name: s-external-dns
+                    name: powerdns-secrets
                     key: PDNS_APIKEY
               image: rancher/klipper-helm:v0.1.5
               name: helm
@@ -106,7 +106,7 @@
 - name: Install External-DNS with PowerDNS
   shell: "{{ item }}"
   with_items:
-    - kubectl -n external-dns get secret s-external-dns -o yaml|grep -v namespace|kubectl -n kube-system apply -f -
+    - kubectl -n external-dns get secret powerdns-secrets -o yaml|grep -v namespace|kubectl -n kube-system apply -f -
     - "kubectl apply -f {{ ansible_env.HOME }}/external-dns.yml"
 
 - name: Wait to raise external-dns

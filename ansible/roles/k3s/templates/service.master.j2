@@ -9,7 +9,10 @@
   ExecStart=/usr/bin/k3s server --service-cidr 10.43.0.0/16 --cluster-domain {{ domain }} --no-flannel --no-deploy servicelb --bind-address {{ vm_ip }}
   {% endif %}
 {% else %}
-  {% if ingress is defined and ingress['traefik'] is not defined%}
+  {% if ingress is defined and 'traefik' not in ingress %}
+  {% for item in ingress %}
+#    {{ item }}
+  {% endfor %}
   ExecStart=/usr/bin/k3s server --service-cidr 10.43.0.0/16 --cluster-domain {{ domain }} --no-deploy servicelb --no-deploy traefik --bind-address {{ vm_ip }}
   {% else %}
   ExecStart=/usr/bin/k3s server --service-cidr 10.43.0.0/16 --cluster-domain {{ domain }} --no-deploy servicelb --bind-address {{ vm_ip }}

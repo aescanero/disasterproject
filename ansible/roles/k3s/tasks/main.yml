@@ -182,13 +182,6 @@
     name: network
     tasks_from: "{{ network_controller }}"
 
-- name: Install storage_controller
-  when: storage is defined and master_name is defined and master_name.stdout == inventory_hostname
-  run_once: true
-  include_role:
-    name: storage
-    tasks_from: "main"
-
 - name: Define a default external pool for Kubernetes
   when: master_name is defined and master_name.stdout == inventory_hostname and k3s_stat_result.stat.exists == false
   run_once: true
@@ -278,6 +271,13 @@
   run_once: true
   pause:
     seconds: 20
+
+- name: Install storage_controller
+  when: storage is defined and master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  include_role:
+    name: storage
+    tasks_from: "main"
 
 - name: Install addons
   when: addons is defined and master_name is defined and master_name.stdout == inventory_hostname
