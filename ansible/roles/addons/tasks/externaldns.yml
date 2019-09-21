@@ -1,123 +1,161 @@
 ---
-- name: Define PowerDNS
-  vars:
-    randomkey1: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters,digits') | to_uuid | b64encode }}"
-    randomkey2: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters,digits') | to_uuid | b64encode }}"
-    randomkey3: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters,digits') | to_uuid | b64encode }}"
-  copy:
-    dest: "{{ ansible_env.HOME }}/powerdns.yml"
-    content: "{{ lookup('template', 'powerdns.j2') }}"
+#- name: Define PowerDNS
+#  vars:
+#    randomkey1: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters,digits') | to_uuid | b64encode }}"
+#    randomkey2: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters,digits') | to_uuid | b64encode }}"
+#    randomkey3: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters,digits') | to_uuid | b64encode }}"
+#  copy:
+#    dest: "{{ ansible_env.HOME }}/powerdns.yml"
+#    content: "{{ lookup('template', 'powerdns.j2') }}"
 
-- name: Install External-DNS with PowerDNS
-  shell: "kubectl apply -f {{ ansible_env.HOME }}/powerdns.yml"
+#- name: Install External-DNS with PowerDNS
+#  shell: "kubectl apply -f {{ ansible_env.HOME }}/powerdns.yml"
 
-- name: create storage
-  when: addons_item.storage is defined and addons_item.storage == "nfs"
-  include_role:
-    name: storage
-    tasks_from: pvc
+- name: Call Helm
   vars:
-    service: powerdns
     namespace: "external-dns"
-
-- name: Modify external LoadBalacer
-  when: addons_item.publish is defined and "external" in addons_item.publish
+    service: "powerdns"
+    file: "https://github.com/aescanero/powerdns/releases/download/0.1.1/powerdns-0.1.1.tgz"
+    setString: 
+    - "powerdns.domain=\"{{ domain }}\""
   include_role:
-    name: services
-    tasks_from: external
-  vars:
-    service: powerdns
-    externalport: 80
-    internalport: "pdns-admin-http"
-    protocol: "TCP"
-    namespace: "external-dns"
-    label: "app"
+    name: addons
+    tasks_from: helm
 
-- name: Modify ingress route
-  when: addons_item.publish is defined and "route" in addons_item.publish
+#- name: create storage
+#  when: addons_item.storage is defined and addons_item.storage == "nfs"
+#  include_role:
+#    name: storage
+#    tasks_from: pvc
+#  vars:
+#    service: powerdns
+#    namespace: "external-dns"
+
+#- name: Modify external LoadBalacer
+#  when: addons_item.publish is defined and "external" in addons_item.publish
+#  include_role:
+#    name: services
+#    tasks_from: external
+#  vars:
+#    service: powerdns
+#    externalport: 80
+#    internalport: "pdns-admin-http"
+#    protocol: "TCP"
+#    namespace: "external-dns"
+#    label: "app"
+
+#- name: Modify ingress route
+#  when: addons_item.publish is defined and "route" in addons_item.publish
+#  include_role:
+#    name: ingress
+#    tasks_from: ingress_add_route
+#  vars:
+#    service: powerdns-admin
+#    route: "/"
+#    internalport: 80
+#    namespace: "external-dns"
+
+#- name: Install external-dns helm with klipper-helm
+#  copy:
+#    dest: "{{ ansible_env.HOME }}/external-dns.yml"
+#    content: |
+#      ---
+#      apiVersion: batch/v1
+#      kind: Job
+#      metadata:
+#        name: helm-install-external-dns
+#        namespace: kube-system
+#      spec:
+#        backoffLimit: 1000
+#        completions: 1
+#        parallelism: 1
+#        template:
+#          metadata:
+#            labels:
+#              jobname: helm-install-external-dns
+#          spec:
+#            containers:
+#            - args:
+#              - install
+#              - --namespace
+#              - external-dns
+#              - --name
+#              - external-dns
+#              - --set-string
+#              - provider=pdns
+#              - --set-string
+#              - pdns.apiUrl=http://powerdns-api.external-dns.svc.{{ domain }}
+#              - --set-string
+#              - pdns.apiPort=8081
+#              - --set-string
+#              - pdns.apiKey=$(pdns_apikey)
+#              - --set-string
+#              - txtOwnerId=external-dns
+#              - --set-string
+#              - domainFilters[0]={{ domain }}
+#              - --set-string
+#              - logLevel=info
+#              - --set-string
+#              - interval=10s
+#              - --set-string
+#              - rbac.create=true
+#              - stable/external-dns
+#              env:
+#              - name: NAME
+#                value: external-dns
+#              - name: pdns_apikey
+#                valueFrom:
+#                  secretKeyRef:
+#                    name: powerdns-secret
+#                    key: PDNS_APIKEY
+#              image: rancher/klipper-helm:v0.1.5
+#              name: helm
+#            serviceAccount: helm-install-sa
+#            serviceAccountName: helm-install-sa
+#            restartPolicy: OnFailure
+
+#- name: Install External-DNS with PowerDNS
+#  shell: "{{ item }}"
+#  with_items:
+#    - if kubectl get -n kube-system secret powerdns-secret|grep powerdns-secret;then kubectl delete -n kube-system secret powerdns-secret;fi
+#    - kubectl -n external-dns get secret powerdns-secret -o yaml|grep -v namespace|kubectl -n kube-system apply -f -
+#    - "kubectl apply -f {{ ansible_env.HOME }}/external-dns.yml"
+
+- name: Load secret token into variable
+  shell: kubectl -n external-dns get secret powerdns-secret -o jsonpath='{.data.PDNS_APIKEY}'
+  register: token
+
+- name: Call Helm
+  vars:
+    namespace: "external-dns"
+    service: "external-dns"
+    file: "stable/external-dns"
+    setYaml: |
+      provider: "pdns"
+      pdns:
+        apiUrl: "http://powerdns-service-api.external-dns.svc.{{ domain }}"
+        apiPort: 8081
+        apiKey: "{{ token.stdout | b64decode }}"
+      txtOwnerId: "external-dns"
+      domainFilters:
+        - "{{ domain }}"
+      logLevel: "info"
+      interval: "10s"
+      rbac:
+        create: "true"
   include_role:
-    name: ingress
-    tasks_from: ingress_add_route
-  vars:
-    service: powerdns-admin
-    route: "/"
-    internalport: 80
-    namespace: "external-dns"
+    name: addons
+    tasks_from: helm
 
-- name: Install external-dns helm with klipper-helm
-  copy:
-    dest: "{{ ansible_env.HOME }}/external-dns.yml"
-    content: |
-      ---
-      apiVersion: batch/v1
-      kind: Job
-      metadata:
-        name: helm-install-external-dns
-        namespace: kube-system
-      spec:
-        backoffLimit: 1000
-        completions: 1
-        parallelism: 1
-        template:
-          metadata:
-            labels:
-              jobname: helm-install-external-dns
-          spec:
-            containers:
-            - args:
-              - install
-              - --namespace
-              - external-dns
-              - --name
-              - external-dns
-              - --set-string
-              - provider=pdns
-              - --set-string
-              - pdns.apiUrl=http://powerdns-api.external-dns.svc.{{ domain }}
-              - --set-string
-              - pdns.apiPort=8081
-              - --set-string
-              - pdns.apiKey=$(pdns_apikey)
-              - --set-string
-              - txtOwnerId=external-dns
-              - --set-string
-              - domainFilters[0]={{ domain }}
-              - --set-string
-              - logLevel=info
-              - --set-string
-              - interval=10s
-              - --set-string
-              - rbac.create=true
-              - stable/external-dns
-              env:
-              - name: NAME
-                value: external-dns
-              - name: pdns_apikey
-                valueFrom:
-                  secretKeyRef:
-                    name: powerdns-secrets
-                    key: PDNS_APIKEY
-              image: rancher/klipper-helm:v0.1.5
-              name: helm
-            serviceAccount: helm-install-sa
-            serviceAccountName: helm-install-sa
-            restartPolicy: OnFailure
-
-- name: Install External-DNS with PowerDNS
-  shell: "{{ item }}"
-  with_items:
-    - kubectl -n external-dns get secret powerdns-secrets -o yaml|grep -v namespace|kubectl -n kube-system apply -f -
-    - "kubectl apply -f {{ ansible_env.HOME }}/external-dns.yml"
-
-- name: Wait to raise external-dns
-  shell: kubectl get pods -n external-dns |grep ^external-dns|grep Running
-  register: test
-  retries: 25
-  delay: 10
-  until: test.stdout != ""
+#- name: Wait to raise external-dns
+#  shell: kubectl get pods -n external-dns |grep ^external-dns|grep Running
+#  register: test
+#  retries: 25
+#  delay: 10
+#  until: test.stdout != ""
 
 - name: Obtain dashboard IP
-  shell: kubectl get service -n external-dns published-dns -o jsonpath='{.status.loadBalancer.ingress[].ip}'
+  shell: kubectl get service -n external-dns powerdns-service-dns -o jsonpath='{.status.loadBalancer.ingress[].ip}'
   register: externaldns_ip
 
 - name: Make sure old dns conf is not in the resolv.conf configuration

@@ -1,0 +1,34 @@
+---
+- name: Check that Helm is installed
+  stat:
+    path: /usr/local/sbin/helm
+  register: helm_stat_result
+
+- name: Install Helm 3beta3
+  when: helm_stat_result.stat.exists == false
+  shell: curl -sLS https://get.helm.sh/helm-v3.0.0-beta.3-linux-amd64.tar.gz|tar --no-overwrite-dir --strip=1 -C /usr/local/sbin/. -xz
+  args:
+    warn: false
+
+- name: Load stable at first time
+  when: helm_stat_result.stat.exists == false
+  shell: helm repo add stable https://kubernetes-charts.storage.googleapis.com
+  args:
+    warn: false
+
+- name: Create ns
+  when: namespace is defined
+  shell: "if ! kubectl get ns {{ namespace }} 2>/dev/null; then kubectl create ns {{ namespace }};fi"
+
+- name: Helm Install
+  shell: |
+    {{ lookup('template', 'helm.j2') }}
+
+- name: Wait to raise
+  when: namespace is defined and service is defined
+  shell: kubectl -n {{ namespace }} get pod|grep {{ service }} |grep Running
+  register: test
+  retries: 25
+  delay: 10
+  until: test.stdout != ""
+...
