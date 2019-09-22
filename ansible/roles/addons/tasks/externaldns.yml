@@ -11,16 +11,51 @@
 #- name: Install External-DNS with PowerDNS
 #  shell: "kubectl apply -f {{ ansible_env.HOME }}/powerdns.yml"
 
-- name: Call Helm
+- name: Helm Powerdns Chart with storage
+  when: storage is defined
   vars:
     namespace: "external-dns"
     service: "powerdns"
-    file: "https://github.com/aescanero/powerdns/releases/download/0.1.1/powerdns-0.1.1.tgz"
-    setString: 
-    - "powerdns.domain=\"{{ domain }}\""
+    file: "https://raw.githubusercontent.com/aescanero/helm-powerdns/master/stable/powerdns.tgz"
+    setYaml: |
+      powerdns:
+        domain: "{{ domain }}"
+      mariadb:
+        persistence:
+          storageClass: "{{ storage }}"
+      powerdnsadmin:
+        ingress:
+          enabled: true
+          class: "traefik"
+          path: "/"
+          hostname: "powerdns-admin"
   include_role:
     name: addons
     tasks_from: helm
+
+- name: Helm Powerdns Chart without storage
+  when: storage is not defined
+  vars:
+    namespace: "external-dns"
+    service: "powerdns"
+    file: "https://raw.githubusercontent.com/aescanero/helm-powerdns/master/stable/powerdns.tgz"
+    setYaml: |
+      powerdns:
+        domain: "{{ domain }}"
+      mariadb:
+        persistence:
+          enabled: false
+      powerdnsadmin:
+        ingress:
+          enabled: true
+          class: "traefik"
+          path: "/"
+          hostname: "powerdns-admin"
+  include_role:
+    name: addons
+    tasks_from: helm
+
+
 
 #- name: create storage
 #  when: addons_item.storage is defined and addons_item.storage == "nfs"

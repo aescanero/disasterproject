@@ -28,7 +28,7 @@
   when: namespace is defined and service is defined
   shell: kubectl -n {{ namespace }} get pod|grep {{ service }} |grep Running
   register: test
-  retries: 25
-  delay: 10
+  retries: 30
+  delay: 15
   until: test.stdout != ""
 ...

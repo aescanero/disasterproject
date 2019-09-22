@@ -63,4 +63,12 @@
   when: ansible_os_family == "RedHat" and ansible_distribution_major_version == "8"
   vars:
     ansible_host: "{{ vm_ip }}"
+
+- name: Install storage_dependencies
+  when: storage is defined
+  vars:
+    ansible_host: "{{ vm_ip }}"
+  include_role:
+    name: storage
+    tasks_from: "{{ storage }}.nodes"
 ...

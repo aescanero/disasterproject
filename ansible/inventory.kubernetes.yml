@@ -23,17 +23,20 @@ all:
         - traefik
         addons:
         - name: externaldns
+          storage: true
           publish:
           - route
           - external
+        - name: octant
         - name: k8dash
           publish:
           - route
-          - external
         - name: weave-scope
           publish:
           - route
         - name: dashboard
+          publish:
+          - external
         - name: kube-ops-view
           publish:
           - route
