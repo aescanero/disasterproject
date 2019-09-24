@@ -1,46 +1,15 @@
 ---
 - name: Install weave-scope helm with klipper-helm
-  copy:
-    dest: "{{ ansible_env.HOME }}/weave-scope.yml"
-    content: |
-      ---
-      apiVersion: v1
-      kind: Namespace
-      metadata:
-        name: weave-scope
-      ---
-      apiVersion: batch/v1
-      kind: Job
-      metadata:
-        name: helm-install-weave-scope
-        namespace: kube-system
-      spec:
-        backoffLimit: 1000
-        completions: 1
-        parallelism: 1
-        template:
-          metadata:
-            labels:
-              jobname: helm-install-weave-scope
-          spec:
-            containers:
-            - args:
-              - install
-              - --namespace
-              - weave-scope
-              - --name
-              - weave-scope
-              - --set-string
-              - service.type=LoadBalancer
-              - stable/weave-scope 
-              image: rancher/klipper-helm:v0.1.5
-              name: helm
-            serviceAccount: helm-install-sa
-            serviceAccountName: helm-install-sa
-            restartPolicy: OnFailure
-
-- name: Configure Service
-  shell: "kubectl apply -f {{ ansible_env.HOME }}/weave-scope.yml"
+  vars:
+    namespace: "weave-scope"
+    service: "weave.scope"
+    file: "stable/weave-scope "
+    setYaml: |
+      service:
+        type: "LoadBalancer"
+  include_role:
+    name: addons
+    tasks_from: helm
 
 - name: Modify ingress route
   when: addons_item.publish is defined and "route" in addons_item.publish

@@ -13,49 +13,4 @@
   include_role:
     name: addons
     tasks_from: helm
-
-#- name: Install nfs-client-provisioner helm with klipper-helm
-#  copy:
-#    dest: "{{ ansible_env.HOME }}/nfs-client.yml"
-#    content: |
-#      ---
-#      apiVersion: v1
-#      kind: Namespace
-#      metadata:
-#        name: nfs-client
-#      ---
-#      apiVersion: batch/v1
-#      kind: Job
-#      metadata:
-#        name: helm-install-nfs-client
-#        namespace: kube-system
-#      spec:
-#        backoffLimit: 1000
-#        completions: 1
-#        parallelism: 1
-#        template:
-#          metadata:
-#            labels:
-#              jobname: helm-install-nfs-client
-#          spec:
-#            containers:
-#            - args:
-#              - install
-#              - --name
-#              - nfs-client
-#              - --set-string
-#              - nfs.server={{ network }}.1
-#              - --set-string
-#              - nfs.path=/var/nfs/share
-#              - --set-string
-#              - storageClass.defaultClass=true
-#              - stable/nfs-client-provisioner
-#              image: rancher/klipper-helm:v0.1.5
-#              name: helm
-#            serviceAccount: helm-install-sa
-#            serviceAccountName: helm-install-sa
-#            restartPolicy: OnFailure
-
-#- name: Configure Service
-#  shell: "kubectl apply -f {{ ansible_env.HOME }}/nfs-client.yml"
 ...
