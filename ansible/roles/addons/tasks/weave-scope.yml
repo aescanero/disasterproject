@@ -2,7 +2,7 @@
 - name: Install weave-scope helm with klipper-helm
   vars:
     namespace: "weave-scope"
-    service: "weave.scope"
+    service: "weave-scope"
     file: "stable/weave-scope "
     setYaml: |
       service:
