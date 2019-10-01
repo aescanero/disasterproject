@@ -1,59 +1,32 @@
 ---
-- name: install Traefik
+- name: Install Traefik helm
   when: container_engine != "k3s" or network_controller is defined
-  copy:
-    dest: "{{ ansible_env.HOME }}/traefik.yml"
-    content: |
-      ---
-      apiVersion: batch/v1
-      kind: Job
-      metadata:
-        name: helm-install-traefik
-        namespace: kube-system
-      spec:
-        backoffLimit: 1000
-        completions: 1
-        parallelism: 1
-        template:
-          metadata:
-            labels:
-              jobname: helm-install-traefik
-          spec:
-            containers:
-            - args:
-              - install
-              - --namespace
-              - kube-system
-              - --name
-              - traefik
-              - --set-string
-              - dashboard.enabled=true
-              - --set-string
-              - rbac.enabled=true
-              - --set-string
-              - ssl.enabled=true
-              - --set-string
-              - ssl.mtls.enabled=true
-              - --set-string
-              - ssl.mtls.optional=true
-              - --set-string
-              - metrics.prometheus.enabled=true
-              - --set-string
-              - ssl.generateTLS=true
-              - --set-string
-              - dashboard.auth.basic.test='$apr1$H6uskkkW$IgXLP6ewTrSuBkTrqE8wj/'
-              - stable/traefik
-              image: rancher/klipper-helm:v0.1.5
-              name: helm
-            serviceAccount: helm-install-sa
-            serviceAccountName: helm-install-sa
-            restartPolicy: OnFailure
-
-- name: install Traefik
-  when: container_engine != "k3s" or network_controller is defined
-  shell: "kubectl apply -f {{ ansible_env.HOME }}/traefik.yml"
+  vars:
+    namespace: "kube-system"
+    service: "traefik"
+    file: "stable/traefik"
+    setYaml: |
+      dashboard:
+        enabled: "true"
+        auth:
+          basic:
+            test: '$apr1$H6uskkkW$IgXLP6ewTrSuBkTrqE8wj/'
+      rbac:
+        enabled: "true"
+      ssl:
+        enabled: "true"
+        mtls:
+          enabled: "true"
+        generateTLS: "true"
+      metrics:
+        prometheus:
+          enabled: "true"
+  include_role:
+    name: addons
+    tasks_from: helm
 
 - name: Wait to raise Traefik
+  when: container_engine == "k3s" and network_controller is not defined
   shell: kubectl get pods -n kube-system |grep traefik|grep -v helm|grep Running
   register: traefik_state
   retries: 25
@@ -101,7 +74,6 @@
           [metrics]
             [metrics.prometheus]
               entryPoint = "traefik"
-
 
 - name: Define a patch for traefik configmap
   when: container_engine == "k3s" and network_controller is not defined

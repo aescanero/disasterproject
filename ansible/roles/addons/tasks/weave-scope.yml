@@ -1,5 +1,5 @@
 ---
-- name: Install weave-scope helm with klipper-helm
+- name: Install weave-scope helm
   vars:
     namespace: "weave-scope"
     service: "weave-scope"

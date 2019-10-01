@@ -1,49 +1,13 @@
 ---
-- name: Install prometheus-adapter helm with klipper-helm
-  copy:
-    dest: "{{ ansible_env.HOME }}/prometheus-adapter.yml"
-    content: |
-      ---
-      apiVersion: v1
-      kind: Namespace
-      metadata:
-        name: prometheus-adapter
-      ---
-      apiVersion: batch/v1
-      kind: Job
-      metadata:
-        name: helm-install-prometheus-adapter
-        namespace: kube-system
-      spec:
-        backoffLimit: 1000
-        completions: 1
-        parallelism: 1
-        template:
-          metadata:
-            labels:
-              jobname: helm-install-prometheus-adapter
-          spec:
-            containers:
-            - args:
-              - install
-              - --namespace
-              - prometheus-adapter
-              - --name
-              - prometheus-adapter
-              - stable/prometheus-adapter 
-              image: rancher/klipper-helm:v0.1.5
-              name: helm
-            serviceAccount: helm-install-sa
-            serviceAccountName: helm-install-sa
-            restartPolicy: OnFailure
-
-- name: Configure Service
-  shell: "kubectl apply -f {{ ansible_env.HOME }}/prometheus-adapter.yml"
-
-- name: Wait to raise prometheus-adapter
-  shell: kubectl get pods -n prometheus-adapter |grep prometheus-adapter|grep -v helm|grep Running
-  register: test
-  retries: 25
-  delay: 10
-  until: test.stdout != ""
+- name: Install prometheus-adapter helm
+  vars:
+    namespace: "prometheus"
+    service: "prometheus-adapter"
+    file: "stable/prometheus-adapter"
+    setYaml: |
+      service:
+        type: "LoadBalancer"
+  include_role:
+    name: addons
+    tasks_from: helm
 ...
