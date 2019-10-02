@@ -1,6 +1,8 @@
 powerdns:
   domain: "{{ domain }}"
 mariadb:
+  image:
+    tag: 10.1
   persistence:
 {% if storage is defined %}
     storageClass: "{{ storage }}"
