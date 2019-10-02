@@ -100,6 +100,8 @@
               address = ":8080"
               [entryPoints.traefik.auth.basic]
               users = ["admin:$apr1$zjjGWKW4$W2JIcu4m26WzOzzESDF0W/"]
+          [ping]
+          entryPoint = "http"
           [kubernetes]
             [kubernetes.ingressEndpoint]
             publishedService = "kube-system/traefik"
@@ -152,6 +154,10 @@
 - name: Configure traefik service
   when: container_engine == "k3s" and network_controller is not defined
   shell: kubectl patch service -n kube-system traefik -p "$(cat {{ ansible_env.HOME }}/traefik.svc.patch.yml)"
+
+- name: Reload traefik configuration
+  when: container_engine == "k3s" and network_controller is not defined
+  shell: kubectl -n kube-system delete pod `kubectl -n kube-system get pods |grep ^traefik|awk '{print $1}'`
 
 - include: traefik_add_route.yml
   vars:
