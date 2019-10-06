@@ -8,6 +8,7 @@
     setYaml: |
       dashboard:
         enabled: "true"
+        domain: "traefik-dashboard.{{ domain }}"
         auth:
           basic:
             test: '$apr1$H6uskkkW$IgXLP6ewTrSuBkTrqE8wj/'
@@ -15,6 +16,7 @@
         enabled: "true"
       ssl:
         enabled: "true"
+        optional: "true"
         mtls:
           enabled: "true"
         generateTLS: "true"
