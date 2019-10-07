@@ -1,0 +1,13 @@
+---
+- name: Install default network_controller
+  when: network_controller is not defined
+  include_role:
+    name: network
+    tasks_from: flannel
+  
+- name: Install network_controller
+  when: network_controller is defined
+  include_role:
+    name: network
+    tasks_from: "{{ network_controller }}"
+...

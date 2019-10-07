@@ -250,19 +250,9 @@
     content: |
       executed
 
-- name: Install default network_controller
-  when: network_controller is not defined and master_name is defined and master_name.stdout == inventory_hostname
+- include: network.yml
   run_once: true
-  include_role:
-    name: network
-    tasks_from: flannel
-  
-- name: Install network_controller
-  when: network_controller is defined and master_name is defined and master_name.stdout == inventory_hostname
-  run_once: true
-  include_role:
-    name: network
-    tasks_from: "{{ network_controller }}"
+  when: master_name is defined and master_name.stdout == inventory_hostname
 
 - name: Wait to raise k8s master
   run_once: true
@@ -314,24 +304,9 @@
     - kubectl apply -f "https://raw.githubusercontent.com/danderson/metallb/master/manifests/metallb.yaml"
     - "kubectl apply -f {{ ansible_env.HOME }}/pool.yml"
 
-- name: Install default ingress
-  when: ingress is not defined and master_name is defined and master_name.stdout == inventory_hostname
+- include: ingress.yml
+  when: master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
-  include_role:
-    name: ingress
-    tasks_from: main
-  vars:
-    ingress_item: "traefik"
-  
-- name: Install ingress
-  when: ingress is defined and master_name is defined and master_name.stdout == inventory_hostname
-  run_once: true
-  include_role:
-    name: ingress
-    tasks_from: main
-  with_items: "{{ ingress }}"
-  loop_control:
-    loop_var: ingress_item
 
 - name: Check that initsecret exists
   when: master_name is defined and master_name.stdout == inventory_hostname
@@ -430,18 +405,15 @@
   pause:
     seconds: 40
 
-- name: "Fix for Oracle Linux 8 and kube-proxy 1.15.3"
+- name: "Fix for kube-proxy"
   shell: kubectl get pods -A|grep kube-proxy|awk '{print $2}'|while read l;do echo "" |kubectl -n kube-system exec -i $l -- /bin/sh -c "iptables -t nat -N KUBE-MARK-DROP;iptables -t nat -A KUBE-MARK-DROP -j MARK --set-xmark 0x8000/0x8000";echo $l;done
   when: master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
 
-- name: Install addons
-  when: addons is defined and master_name is defined and master_name.stdout == inventory_hostname
+- pause:
+    seconds: 20
+
+- include: addons.yml
   run_once: true
-  include_role:
-    name: addons
-    tasks_from: main
-  with_items: "{{ addons }}"
-  loop_control:
-    loop_var: addons_item
+  when: addons is defined and master_name is defined and master_name.stdout == inventory_hostname
 ...

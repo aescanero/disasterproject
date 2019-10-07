@@ -1,0 +1,36 @@
+---
+- name: Main Task to Create Virtual Machines
+  hosts: vms
+  order: sorted
+  any_errors_fatal: true
+  become_user: root
+  become: yes
+  user: root
+  gather_facts: false
+  vars_files:
+  - vars/conn
+  - vars/virt
+  tasks:
+
+  - name: Configure virtual machine
+    import_role:
+      name: os
+      tasks_from: setup.yml
+
+  - name: obtiene el nombre del master
+    command: echo "{{ inventory_hostname }}"
+    register: master_name
+    run_once: true
+    vars:
+      ansible_host: "{{ vm_ip }}"
+    when: master_name is not defined and container_engine is defined
+
+  - name: Include Container Engine
+    include_role:
+      name: "{{container_engine}}"
+      tasks_from: addons.yml
+    vars:
+      ansible_host: "{{ vm_ip }}"
+    run_once: true
+    when: addons is defined and master_name is defined and master_name.stdout == inventory_hostname and container_engine is defined
+...

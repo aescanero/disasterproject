@@ -1,3 +1,3 @@
-cat <<EOF | /usr/local/sbin/helm install -f - {% if setString is defined %}--set-string {{ setString|join(',') }}{% endif %} {% if set is defined %}--set {{ set|join(',') }}{% endif %} {% if namespace is defined %}-n {{ namespace }}{% endif %} {% if service is defined %}{{ service }}{% else %}-g{% endif %} "{{ file }}"
+cat <<EOF | /usr/local/sbin/helm {% if helm_status.stdout == "" %}install{% else %}upgrade{% endif %} -f - {% if setString is defined %}--set-string {{ setString|join(',') }}{% endif %} {% if set is defined %}--set {{ set|join(',') }}{% endif %} {% if namespace is defined %}-n {{ namespace }}{% endif %} {% if service is defined %}{{ service }}{% else %}-g{% endif %} "{{ file }}"
 {% if setYaml is defined %}{{ setYaml }}{% endif %}
 EOF

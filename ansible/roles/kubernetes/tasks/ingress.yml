@@ -1,0 +1,19 @@
+---
+- name: Install default ingress
+  when: ingress is not defined
+  include_role:
+    name: ingress
+    tasks_from: main
+  vars:
+    ingress_item: "traefik"
+  
+- name: Install ingress
+  when: ingress is defined
+  run_once: true
+  include_role:
+    name: ingress
+    tasks_from: main
+  with_items: "{{ ingress }}"
+  loop_control:
+    loop_var: ingress_item
+...

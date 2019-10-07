@@ -20,6 +20,12 @@
   when: namespace is defined
   shell: "if ! kubectl get ns {{ namespace }} 2>/dev/null; then kubectl create ns {{ namespace }};fi"
 
+- name: Helm status
+  shell: |
+    {{ lookup('template', 'helm_status.j2') }}
+  register: helm_status
+  ignore_errors: yes
+  
 - name: Helm Install
   shell: |
     {{ lookup('template', 'helm.j2') }}

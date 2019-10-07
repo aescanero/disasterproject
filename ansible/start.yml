@@ -1,0 +1,23 @@
+---
+- name: Main Task to Restore Virtual Machines
+  hosts: vms
+  any_errors_fatal: true
+  become_user: root
+  become: yes
+  user: root
+  gather_facts: false
+  vars_files:
+  - vars/conn
+  - vars/virt
+  tasks:
+  - name: Restore virtual machine
+    import_role:
+        name: libvirt
+        tasks_from: start.yml
+    connection: local
+    delegate_to: localhost
+
+
+
+
+

@@ -11,14 +11,14 @@
         domain: "traefik-dashboard.{{ domain }}"
         auth:
           basic:
-            test: '$apr1$H6uskkkW$IgXLP6ewTrSuBkTrqE8wj/'
+            admin: $apr1$zjjGWKW4$W2JIcu4m26WzOzzESDF0W/
       rbac:
         enabled: "true"
       ssl:
         enabled: "true"
-        optional: "true"
         mtls:
           enabled: "true"
+          optional: "true"
         generateTLS: "true"
       metrics:
         prometheus:
