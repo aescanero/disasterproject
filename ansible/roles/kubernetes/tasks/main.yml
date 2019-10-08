@@ -403,15 +403,18 @@
 
 - name: Wait to raise kubernetes nodes
   pause:
-    seconds: 40
+    seconds: 100
 
 - name: "Fix for kube-proxy"
   shell: kubectl get pods -A|grep kube-proxy|awk '{print $2}'|while read l;do echo "" |kubectl -n kube-system exec -i $l -- /bin/sh -c "iptables -t nat -N KUBE-MARK-DROP;iptables -t nat -A KUBE-MARK-DROP -j MARK --set-xmark 0x8000/0x8000";echo $l;done
   when: master_name is defined and master_name.stdout == inventory_hostname
   run_once: true
+  register: proxy-state
 
-- pause:
-    seconds: 20
+- debug:
+    var: proxy-state
+  when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
 
 - include: addons.yml
   run_once: true

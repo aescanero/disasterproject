@@ -23,6 +23,9 @@
       metrics:
         prometheus:
           enabled: "true"
+      kubernetes:
+        ingressEndpoint:
+          publishedService: "kube-system/traefik"
   include_role:
     name: addons
     tasks_from: helm
@@ -34,48 +37,6 @@
   retries: 25
   delay: 10
   until: traefik_state.stdout != ""
-
-- name: Define a patch for traefik configmap
-  when: container_engine != "k3s" or network_controller is defined
-  copy:
-    dest: "{{ ansible_env.HOME }}/traefik.cm.patch.yml"
-    content: |
-      data:
-        traefik.toml: |
-          # traefik.toml
-          logLevel = "info"
-          defaultEntryPoints = ["http","https","traefik"]
-          [entryPoints]
-            [entryPoints.http]
-            address = ":80"
-            compress = true
-            [entryPoints.https]
-            address = ":443"
-            compress = true
-              [entryPoints.https.tls]
-                [entryPoints.https.tls.ClientCA]
-                files = []
-                optional = true
-                [[entryPoints.https.tls.certificates]]
-                CertFile = "/ssl/tls.crt"
-                KeyFile = "/ssl/tls.key"
-            [entryPoints.traefik]
-              address = ":8080"
-              [entryPoints.traefik.auth.basic]
-              users = ["admin:$apr1$zjjGWKW4$W2JIcu4m26WzOzzESDF0W/"]
-          [ping]
-          entryPoint = "http"
-          [kubernetes]
-            [kubernetes.ingressEndpoint]
-            publishedService = "kube-system/traefik"
-          [traefikLog]
-            format = "json"
-          [api]
-            entryPoint = "traefik"
-            dashboard = true
-          [metrics]
-            [metrics.prometheus]
-              entryPoint = "traefik"
 
 - name: Define a patch for traefik configmap
   when: container_engine == "k3s" and network_controller is not defined
@@ -117,6 +78,7 @@
               entryPoint = "traefik"
 
 - name: Define a patch for traefik deployment
+  when: container_engine == "k3s" and network_controller is not defined
   copy:
     dest: "{{ ansible_env.HOME }}/traefik.deploy.patch.yml"
     content: |
@@ -162,6 +124,7 @@
   shell: kubectl -n kube-system delete pod `kubectl -n kube-system get pods |grep ^traefik|awk '{print $1}'`
 
 - include: traefik_add_route.yml
+  when: container_engine == "k3s" and network_controller is not defined
   vars:
     service: traefik
     route: "/"

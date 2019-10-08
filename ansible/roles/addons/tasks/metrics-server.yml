@@ -1,5 +1,5 @@
 ---
-- name: Install weave-scope helm
+- name: Install metrics-server helm
   vars:
     namespace: "metrics-server"
     service: "metrics-server"
