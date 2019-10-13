@@ -1,9 +1,13 @@
 ---
 - name: Install metrics-server helm
   vars:
-    namespace: "metrics-server"
+    namespace: "kube-system"
     service: "metrics-server"
     file: "stable/metrics-server"
+    setYaml: |
+      args:
+      - --kubelet-insecure-tls
+      - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
   include_role:
     name: addons
     tasks_from: helm
