@@ -11,7 +11,7 @@
         domain: "traefik-dashboard.{{ domain }}"
         auth:
           basic:
-            admin: $apr1$zjjGWKW4$W2JIcu4m26WzOzzESDF0W/
+            admin: \$apr1$zjjGWKW4$W2JIcu4m26WzOzzESDF0W/
       rbac:
         enabled: "true"
       ssl:
