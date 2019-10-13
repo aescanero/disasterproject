@@ -2,7 +2,7 @@
 - name: Create dashboard
   shell: "{{ item }}"
   with_items:
-    - 'kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta3/aio/deploy/recommended.yaml'
+    - 'kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta4/aio/deploy/recommended.yaml'
 
 - name: Wait to raise dashboard
   shell: kubectl get pods -n kubernetes-dashboard |grep kubernetes-dashboard|grep Running
