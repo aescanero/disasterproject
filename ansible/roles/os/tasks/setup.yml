@@ -44,6 +44,12 @@
   vars:
     ansible_host: "{{ vm_ip }}"
 
+- name: Disable unattended-upgrades
+  shell: "dpkg -P unattended-upgrades"
+  when: ansible_os_family == "Debian"
+  vars:
+    ansible_host: "{{ vm_ip }}"
+
 - name: Add repository
   yum_repository:
     name: epel
