@@ -1,31 +1,31 @@
 ---
-#- name: Install weave-scope helm
-#  vars:
-#    namespace: "weave-scope"
-#    service: "weave-scope"
-#    file: "stable/weave-scope "
-#    setYaml: |
-#      service:
-#        type: "LoadBalancer"
-#  include_role:
-#    name: addons
-#    tasks_from: helm
-
-- name: Install weave-scope
-  shell: kubectl apply -f "https://cloud.weave.works/k8s/scope.yaml?k8s-version=$(kubectl version | base64 | tr -d '\n')"
-
-- name: Modify external LoadBalacer
-  when: addons_item.publish is defined and "external" in addons_item.publish
-  include_role:
-    name: services
-    tasks_from: external
+- name: Install weave-scope helm
   vars:
-    service: weave-scope-app
-    externalport: 80
-    internalport: 80
-    protocol: "TCP"
-    namespace: "weave"
-    label: "weave-scope"
+    namespace: "weave-scope"
+    service: "weave-scope"
+    file: "stable/weave-scope "
+    setYaml: |
+      service:
+        type: "LoadBalancer"
+  include_role:
+    name: addons
+    tasks_from: helm
+
+#- name: Install weave-scope
+#  shell: kubectl apply -f "https://cloud.weave.works/k8s/scope.yaml?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+
+#- name: Modify external LoadBalacer
+#  when: addons_item.publish is defined and "external" in addons_item.publish
+#  include_role:
+#    name: services
+#    tasks_from: external
+#  vars:
+#    service: weave-scope-app
+#    externalport: 80
+#    internalport: 80
+#    protocol: "TCP"
+#    namespace: "weave"
+#    label: "weave-scope"
 
 - name: Modify ingress route
   when: addons_item.publish is defined and "route" in addons_item.publish
