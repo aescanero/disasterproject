@@ -241,7 +241,7 @@
     - "cp -i /etc/kubernetes/admin.conf {{ ansible_env.HOME }}/.kube/config"
     - kubectl taint nodes {{ inventory_hostname }} node-role.kubernetes.io/master:NoSchedule-
     - kubectl apply -f "https://raw.githubusercontent.com/danderson/metallb/master/manifests/metallb.yaml"
-    - "cat /etc/kubernetes/manifests/kube-apiserver.yaml  |sed '/   - kube-apiserver/a\ \ \ \ - --runtime-config=api\/all=true'"
+    - "sed -i '/   - kube-apiserver/a\\ \\ \\ \\ - --runtime-config=api\\/all=true' /etc/kubernetes/manifests/kube-apiserver.yaml"
 
 - name: Mark kubeadm as executed
   when: kubeadmex_stat_result.stat.exists == false and master_name is defined and master_name.stdout == inventory_hostname
