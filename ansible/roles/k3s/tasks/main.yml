@@ -279,13 +279,7 @@
     name: storage
     tasks_from: "main"
 
-- name: Install addons
-  when: addons is defined and master_name is defined and master_name.stdout == inventory_hostname
+- include: addons.yml
   run_once: true
-  include_role:
-    name: addons
-    tasks_from: main
-  with_items: "{{ addons }}"
-  loop_control:
-    loop_var: addons_item
+  when: addons is defined and master_name is defined and master_name.stdout == inventory_hostname
 ...
