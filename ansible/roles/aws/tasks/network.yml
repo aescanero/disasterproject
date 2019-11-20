@@ -1,0 +1,65 @@
+---
+- ec2_vpc_net:
+    name: '{{ domain.split(".")[0] }}'
+    cidr_block: '{{ network.split(".")[0] }}.{{ network.split(".")[1] }}.0.0/16'
+    region: "{{ region }}"
+    state: present
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+  register: vpc
+
+- name: Create subnet for servers
+  ec2_vpc_subnet:
+    state: present
+    vpc_id: "{{ vpc.vpc.id }}"
+    cidr: '{{ network }}.0/24'
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    tags:
+      Name: '{{ domain.split(".")[0] }} Subnet'
+  register: subnet
+
+- name: create GW
+  ec2_vpc_igw:
+   vpc_id: "{{ vpc.vpc.id }}"
+   region: "{{ region }}"
+   aws_access_key: "{{ aws_access_key }}"
+   aws_secret_key: "{{ aws_secret_key }}"
+   state: "present"
+   tags:
+     Name: '{{ domain.split(".")[0] }} GW'
+  register: gw
+
+- name: Route
+  ec2_vpc_route_table:
+    vpc_id: "{{ vpc.vpc.id }}"
+    region: "{{ region }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    subnets:
+      - "{{ subnet.subnet.id }}"
+    routes:
+      - dest: 0.0.0.0/0
+        gateway_id: "{{ gw.gateway_id  }}"
+    tags:
+      Name: '{{ domain.split(".")[0] }} Route to Internet'
+
+- name: Create Security Group
+  ec2_group:
+    name: '{{ domain.split(".")[0] }} General Rule'
+    description: "General rule for all machines"
+    vpc_id: "{{ vpc.vpc.id }}"
+    region: "{{ region }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    rules:
+      - proto: tcp
+        ports:
+        - 80
+        cidr_ip: 0.0.0.0/0
+      - proto: tcp
+        ports:
+        - 22
+        cidr_ip: 0.0.0.0/0
+  register: security_group
+

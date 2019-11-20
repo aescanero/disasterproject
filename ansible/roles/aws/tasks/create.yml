@@ -1,0 +1,48 @@
+---
+ - name: Create EC2 server
+   ec2:
+    image: ami-467ca739
+    wait: yes
+    instance_type: t2.micro
+    region: "{{ region }}"
+    group_id: "{{ security_group.group_id }}"
+    vpc_subnet_id: "{{ subnet.subnet.id }}"
+    key_name: "{{ keypair.key.name  }}"
+    count_tag:
+      Name: apacheserver
+    exact_count: 1
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+
+- name: Provision AWS instances
+  ec2:
+    aws_access_key: "{{aws_access_key}}"
+    aws_secret_key: "{{aws_secret_key}}"
+    group: k3s
+    instance_type: "{{ instance_type }}"
+    image: "{{ ami_id }}"
+    wait: true
+    exact_count: 2
+    count_tag:
+      Name: K3s
+    instance_tags:
+      Name: k3s
+    register: ec2
+
+- name: Add all instance public IPs to host group
+     add_host: hostname={{ item.public_ip }} groups=ec2hosts
+     loop: "{{ ec2.instances }}"
+
+- hosts: ec2hosts
+  name: configuration play
+  user: ec2-user
+  gather_facts: true
+
+  tasks:
+   - name: Check NTP service
+       service: name=ntpd state=started
+
+
+
+
+...

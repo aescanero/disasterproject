@@ -1,0 +1,18 @@
+---
+- name: Check that the k3s binary exists
+  stat:
+    path: './files/{{ domain.split(".")[0] }}.key.ppk'
+  register: keypair_stat_result
+
+- name: EC2 key pair
+  ec2_key:
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    name: ec2_keypair
+    region: "{{ region }}"
+  register: keypair
+ 
+- name: Copy EC2 Private Key locally so it can be later on used to SSH into the instance
+  when: keypair_stat_result.stat.exists == false and keypair.changed == true
+  copy: content="{{ keypair.key.private_key }}" dest='./files/{{ domain.split(".")[0] }}.key.ppk'
+...
