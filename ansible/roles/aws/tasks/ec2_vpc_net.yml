@@ -1,0 +1,18 @@
+- ec2_vpc_net:
+    name: '{{ name_encoded }}'
+    cidr_block: '{{ cidr_block }}'
+    region: "{{ region }}"
+    state: "{{ state }}"
+    tags:
+      Name: '{{ name_encoded }}'
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+  register: vpc
+  vars:
+    name_encoded: '{{ [dn,name] | join("_") | regex_replace ("\W","_") }}'
+
+- set_fact:
+    '{{ [dn,name] | join("_") | regex_replace ("\W","_") }}_vpc_id': "{{ vpc.vpc.id | default(omit) }}"
+    vpc_id: "{{ vpc.vpc.id | default(omit) }}"
+    cacheable: yes
+

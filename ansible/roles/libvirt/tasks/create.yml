@@ -50,7 +50,8 @@
     dest: /var/lib/libvirt/images/{{ inventory_hostname }}.qcow2
     group: "libvirt"
     mode: '0666'
-  when: vm_file_details.stat.exists == false
+#  when: vm_file_details.stat.exists == false
+  when: not "/var/lib/libvirt/images/{{ inventory_hostname }}.qcow2" is exists
   notify: clean box
 
 - name: image chgrp

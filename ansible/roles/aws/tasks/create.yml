@@ -9,7 +9,7 @@
     vpc_subnet_id: "{{ subnet.subnet.id }}"
     key_name: "{{ keypair.key.name  }}"
     count_tag:
-      Name: apacheserver
+      Name: "{{ inventory_hostname }}"
     exact_count: 1
     aws_access_key: "{{ aws_access_key }}"
     aws_secret_key: "{{ aws_secret_key }}"

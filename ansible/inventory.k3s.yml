@@ -26,19 +26,7 @@ all:
           publish:
           - route
           - external
-        - name: k8dash
-          publish:
-          - route
-        - name: weave-scope
-          publish:
-          - route
-        - name: dashboard
-          publish:
-          - route
-        - name: kube-ops-view
-          publish:
-          - route
-        - name: kubeview
-          publish:
-          - route
         - name: octant
+        - name: kubernator
+
+

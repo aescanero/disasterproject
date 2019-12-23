@@ -5,8 +5,8 @@
 - name: Create kubernator sa
   shell: "{{ item }}"
   with_items:
-    - kubectl create serviceaccount kubernator-sa --dry-run -o yaml | kubectl apply -f -
-    - kubectl create clusterrolebinding kubernator-sa --clusterrole=cluster-admin --serviceaccount=default:kubernator-sa --dry-run -o yaml | kubectl apply -f -
+    - kubectl create -n kubernator serviceaccount kubernator-sa --dry-run -o yaml | kubectl apply -f -
+    - kubectl create clusterrolebinding kubernator-sa --clusterrole=cluster-admin --serviceaccount=kubernator:kubernator-sa --dry-run -o yaml | kubectl apply -f -
 
 - name: Install kubernator
   copy:

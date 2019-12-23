@@ -1,6 +1,5 @@
 ---
-- name: stop vm
-  virt:
+- virt:
     command: destroy
     name: "{{ inventory_hostname }}"
   ignore_errors: yes

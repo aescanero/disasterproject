@@ -1,0 +1,28 @@
+[all]
+{% for item in groups.aws %}
+{{ item }} ansible_host={{ hostvars[item].vm_ip }} ip={{ hostvars[item].vm_ip }}
+{% endfor %}
+[kube-master]
+{{groups.aws[0]}}
+[kube-node]
+{% for item in groups.aws %}
+{% if loop.index > 1 %}
+{{ item }}
+{% endif %}
+{% endfor %}
+[etcd]
+{% for item in groups.aws %}
+{% if loop.index < 4 %}
+{{ item }}
+{% endif %}
+{% endfor %}
+[k8s-cluster:children]
+kube-node
+kube-master
+[calico-rr]
+[vault]
+{% for item in groups.aws %}
+{% if loop.index < 4 %}
+{{ item }}
+{% endif %}
+{% endfor %}

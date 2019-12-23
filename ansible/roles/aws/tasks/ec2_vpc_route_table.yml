@@ -1,0 +1,36 @@
+---
+- fail:
+    msg: "subnet_name or subnet_id must be defined"
+  when: subnet_name is not defined and subnet_id is not defined
+
+- set_fact:
+    subnet_id: "{{ lookup('vars',real_subnet_name, default=omit) }}"
+  when: subnet_name is defined
+  vars:
+    real_subnet_name: '{{ [dn,subnet_name] | join("_") | regex_replace ("\W","_") }}_subnet_id'
+
+- ec2_vpc_route_table:
+    vpc_id: "{{ vpc_id }}"
+    region: "{{ region }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    state: "{{ state }}"
+    route_table_id: "{{ real_route_id | default(omit) }}"
+    subnets:
+      - "{{ subnet_id | default(omit) }}"
+    routes:
+      - dest: 0.0.0.0/0
+        gateway_id: "{{ gateway_id | default(omit) }}"
+    tags:
+      Name: '{{ name_encoded }}'
+  register: route_table
+  vars:
+    name_encoded: '{{ [dn,name] | join("_") | regex_replace ("\W","_") }}'
+    real_route_id: '{{ [dn,name] | join("_") | regex_replace ("\W","_") }}_route_id'
+
+- debug: var=route_table
+
+- set_fact:
+    cacheable: yes
+    '{{ [dn,name] | join("_") | regex_replace ("\W","_") }}_route_id': "{{ route_table.route_table.id | default(omit) }}"
+    route_id: '{{ route_table.route_table.id | default(omit)}}'

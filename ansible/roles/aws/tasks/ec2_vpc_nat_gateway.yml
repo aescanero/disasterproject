@@ -1,0 +1,30 @@
+---
+- fail:
+    msg: "subnet_name or subnet_id must be defined"
+  when: subnet_name is not defined and subnet_id is not defined
+
+- set_fact:
+    subnet_id: "{{ lookup('vars', real_subnet_name, default=omit) }}"
+  when: subnet_name is defined
+  vars:
+    real_subnet_name: '{{ [dn,subnet_name] | join("_") | regex_replace ("\W","_") }}_subnet_id'
+
+- name: Create new nat gateway and allocate new EIP
+  ec2_vpc_nat_gateway:
+    state: "{{ state }}"
+    subnet_id: "{{ subnet_id }}"
+    wait: yes
+    region: "{{ region }}"
+    if_exist_do_not_create: true
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    wait_timeout: 600
+    nat_gateway_id: "{{ lookup('vars',real_nat_gateway_id, default=omit) }}"
+  register: nat_gateway
+  vars:
+    real_nat_gateway_id: '{{ [dn,name] | join("_") | regex_replace ("\W","_") }}_{{ subnet_id | replace ("-","_")  }}_nat_id'
+
+- set_fact:
+    cacheable: yes
+    '{{ [dn,name] | join("_") | regex_replace ("\W","_") }}_{{ subnet_id | replace ("-","_") }}_nat_id': "{{ nat_gateway.nat_gateway_id }}"
+    nat_id: '{{ nat_gateway.nat_gateway_id }}'

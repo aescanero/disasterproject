@@ -1,0 +1,20 @@
+---
+- name: Create Security Group
+  ec2_group:
+    name: '{{ name_encoded }}'
+    description: '{{ name_encoded }}'
+    vpc_id: "{{ vpc_id }}"
+    region: "{{ region }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    state: "{{ state }}"
+    rules: "{{ rules | default(omit)}}"
+  register: security_group
+  vars:
+    name_encoded: '{{ name | regex_replace ("\W","_") }}'
+
+- set_fact:
+    cacheable: yes
+    '{{ name | regex_replace ("\W","_") }}_sg_id': "{{ security_group.group_id }}"
+    sg_id: "{{ security_group.group_id }}"
+

@@ -48,3 +48,12 @@
     msg: The system may not be provisioned because aws_secret_key is not defined.
   when: aws_secret_key is not defined
 
+- fail:
+    msg: Network '{{ network.split(".")[0] }}.{{ network.split(".")[1] }}.0.0/24' is reserved 
+  when: net == "0"
+  vars:
+    net: '{{ network.split(".")[2] }}'
+
+- set_fact:
+    dn: "{{ domain | replace('.', '') | truncate(50) | upper}}"
+

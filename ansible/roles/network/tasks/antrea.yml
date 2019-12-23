@@ -1,0 +1,19 @@
+---
+- name: Check that network driver is installed
+  stat:
+    path: "{{ ansible_env.HOME }}/.antrea"
+  register: addon_stat_result
+
+- name: Install antrea
+  shell: "{{ item }}"
+  with_items:
+    - kubectl apply -f "https://raw.githubusercontent.com/vmware-tanzu/antrea/master/build/yamls/antrea.yml"
+
+- name: Mark addon as intalled
+  when: addon_stat_result.stat.exists == false
+  run_once: true
+  copy:
+    dest: "{{ ansible_env.HOME }}/.antrea"
+    content: |
+      installed
+...
