@@ -1,0 +1,20 @@
+---
+- name: Create subnet for servers
+  ec2_vpc_subnet:
+    state: "{{ state }}"
+    vpc_id: "{{ vpc_id }}"
+    cidr: '{{ cidr }}'
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    map_public: '{{ map_public }}'
+    tags:
+      Name: '{{ name_encoded }}'
+  register: subnet
+  vars:
+    name_encoded: '{{ [dn,name] | join("_") | regex_replace ("\W","_") }}'
+
+- set_fact:
+    cacheable: yes
+    '{{ [dn,name] | join("_") | regex_replace ("\W","_") }}_subnet_id': "{{ subnet.subnet.id | default(omit) }}"
+    subnet_id: '{{ subnet.subnet.id | default(omit)}}'
+

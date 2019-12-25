@@ -1,0 +1,469 @@
+Refreshing Terraform state in-memory prior to plan...
+The refreshed state will be used to calculate this plan, but will not be
+persisted to local or remote state storage.
+
+aws_vpc.main: Refreshing state... [id=vpc-02b529586f6eab97d]
+aws_security_group_rule.kubernetes_rule-1: Refreshing state... [id=sgrule-3070318032]
+aws_security_group_rule.general_rule-1: Refreshing state... [id=sgrule-874394726]
+aws_security_group_rule.general_rule: Refreshing state... [id=sgrule-2190764499]
+aws_security_group_rule.kubernetes_rule-3: Refreshing state... [id=sgrule-3501500708]
+aws_security_group_rule.kubernetes_rule-4: Refreshing state... [id=sgrule-4118035828]
+aws_security_group_rule.kubernetes_rule-2: Refreshing state... [id=sgrule-1211218779]
+aws_security_group_rule.kubernetes_rule-8: Refreshing state... [id=sgrule-2767606529]
+aws_security_group_rule.kubernetes_rule-5: Refreshing state... [id=sgrule-1159188926]
+aws_security_group_rule.kubernetes_rule: Refreshing state... [id=sgrule-2797773901]
+aws_security_group_rule.kubernetes_rule-7: Refreshing state... [id=sgrule-1418606443]
+aws_security_group_rule.general_rule-2: Refreshing state... [id=sgrule-2745989511]
+aws_security_group_rule.kubernetes_rule-6: Refreshing state... [id=sgrule-3035319431]
+aws_instance.launcher: Refreshing state... [id=i-018ddb4b8056e7515]
+aws_instance.kmaster: Refreshing state... [id=i-00d9e7b0b784cbaf4]
+aws_internet_gateway.igw: Refreshing state... [id=igw-0452298f646684351]
+aws_subnet.public: Refreshing state... [id=subnet-0a0fc6b932a1a27fa]
+aws_route_table.private_route: Refreshing state... [id=rtb-0b49a4ab84b26d00a]
+aws_subnet.private: Refreshing state... [id=subnet-0b0fa56878afbb60b]
+aws_security_group.general_rule: Refreshing state... [id=sg-0d52415f0dd3cd785]
+aws_route_table.public_route: Refreshing state... [id=rtb-0725508488b69b07f]
+aws_security_group.kubernetes_rule: Refreshing state... [id=sg-098ba143c19d8e0b1]
+aws_nat_gateway.nat_gw: Refreshing state... [id=nat-0a6f38f769c06f7bd]
+
+------------------------------------------------------------------------
+
+An execution plan has been generated and is shown below.
+Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # aws_eip.nat will be created
+  + resource "aws_eip" "nat" {
+      + allocation_id     = (known after apply)
+      + association_id    = (known after apply)
+      + domain            = (known after apply)
+      + id                = (known after apply)
+      + instance          = (known after apply)
+      + network_interface = (known after apply)
+      + private_dns       = (known after apply)
+      + private_ip        = (known after apply)
+      + public_dns        = (known after apply)
+      + public_ip         = (known after apply)
+      + public_ipv4_pool  = (known after apply)
+      + vpc               = true
+    }
+
+  # aws_instance.kmaster will be created
+  + resource "aws_instance" "kmaster" {
+      + ami                          = "ami-02df9ea15c1778c9c"
+      + arn                          = (known after apply)
+      + associate_public_ip_address  = (known after apply)
+      + availability_zone            = (known after apply)
+      + cpu_core_count               = (known after apply)
+      + cpu_threads_per_core         = (known after apply)
+      + get_password_data            = false
+      + host_id                      = (known after apply)
+      + id                           = (known after apply)
+      + instance_state               = (known after apply)
+      + instance_type                = "t3.small"
+      + ipv6_address_count           = (known after apply)
+      + ipv6_addresses               = (known after apply)
+      + key_name                     = (known after apply)
+      + network_interface_id         = (known after apply)
+      + password_data                = (known after apply)
+      + placement_group              = (known after apply)
+      + primary_network_interface_id = (known after apply)
+      + private_dns                  = (known after apply)
+      + private_ip                   = (known after apply)
+      + public_dns                   = (known after apply)
+      + public_ip                    = (known after apply)
+      + security_groups              = (known after apply)
+      + source_dest_check            = true
+      + subnet_id                    = (known after apply)
+      + tenancy                      = (known after apply)
+      + volume_tags                  = (known after apply)
+      + vpc_security_group_ids       = (known after apply)
+
+      + ebs_block_device {
+          + delete_on_termination = (known after apply)
+          + device_name           = (known after apply)
+          + encrypted             = (known after apply)
+          + iops                  = (known after apply)
+          + kms_key_id            = (known after apply)
+          + snapshot_id           = (known after apply)
+          + volume_id             = (known after apply)
+          + volume_size           = (known after apply)
+          + volume_type           = (known after apply)
+        }
+
+      + ephemeral_block_device {
+          + device_name  = (known after apply)
+          + no_device    = (known after apply)
+          + virtual_name = (known after apply)
+        }
+
+      + network_interface {
+          + delete_on_termination = (known after apply)
+          + device_index          = (known after apply)
+          + network_interface_id  = (known after apply)
+        }
+
+      + root_block_device {
+          + delete_on_termination = (known after apply)
+          + encrypted             = (known after apply)
+          + iops                  = (known after apply)
+          + kms_key_id            = (known after apply)
+          + volume_id             = (known after apply)
+          + volume_size           = (known after apply)
+          + volume_type           = (known after apply)
+        }
+    }
+
+  # aws_instance.knode1 will be created
+  + resource "aws_instance" "knode1" {
+      + ami                          = "ami-02df9ea15c1778c9c"
+      + arn                          = (known after apply)
+      + associate_public_ip_address  = (known after apply)
+      + availability_zone            = (known after apply)
+      + cpu_core_count               = (known after apply)
+      + cpu_threads_per_core         = (known after apply)
+      + get_password_data            = false
+      + host_id                      = (known after apply)
+      + id                           = (known after apply)
+      + instance_state               = (known after apply)
+      + instance_type                = "t3.small"
+      + ipv6_address_count           = (known after apply)
+      + ipv6_addresses               = (known after apply)
+      + key_name                     = (known after apply)
+      + network_interface_id         = (known after apply)
+      + password_data                = (known after apply)
+      + placement_group              = (known after apply)
+      + primary_network_interface_id = (known after apply)
+      + private_dns                  = (known after apply)
+      + private_ip                   = (known after apply)
+      + public_dns                   = (known after apply)
+      + public_ip                    = (known after apply)
+      + security_groups              = (known after apply)
+      + source_dest_check            = true
+      + subnet_id                    = (known after apply)
+      + tenancy                      = (known after apply)
+      + volume_tags                  = (known after apply)
+      + vpc_security_group_ids       = (known after apply)
+
+      + ebs_block_device {
+          + delete_on_termination = (known after apply)
+          + device_name           = (known after apply)
+          + encrypted             = (known after apply)
+          + iops                  = (known after apply)
+          + kms_key_id            = (known after apply)
+          + snapshot_id           = (known after apply)
+          + volume_id             = (known after apply)
+          + volume_size           = (known after apply)
+          + volume_type           = (known after apply)
+        }
+
+      + ephemeral_block_device {
+          + device_name  = (known after apply)
+          + no_device    = (known after apply)
+          + virtual_name = (known after apply)
+        }
+
+      + network_interface {
+          + delete_on_termination = (known after apply)
+          + device_index          = (known after apply)
+          + network_interface_id  = (known after apply)
+        }
+
+      + root_block_device {
+          + delete_on_termination = (known after apply)
+          + encrypted             = (known after apply)
+          + iops                  = (known after apply)
+          + kms_key_id            = (known after apply)
+          + volume_id             = (known after apply)
+          + volume_size           = (known after apply)
+          + volume_type           = (known after apply)
+        }
+    }
+
+  # aws_instance.knode2 will be created
+  + resource "aws_instance" "knode2" {
+      + ami                          = "ami-02df9ea15c1778c9c"
+      + arn                          = (known after apply)
+      + associate_public_ip_address  = (known after apply)
+      + availability_zone            = (known after apply)
+      + cpu_core_count               = (known after apply)
+      + cpu_threads_per_core         = (known after apply)
+      + get_password_data            = false
+      + host_id                      = (known after apply)
+      + id                           = (known after apply)
+      + instance_state               = (known after apply)
+      + instance_type                = "t3.small"
+      + ipv6_address_count           = (known after apply)
+      + ipv6_addresses               = (known after apply)
+      + key_name                     = (known after apply)
+      + network_interface_id         = (known after apply)
+      + password_data                = (known after apply)
+      + placement_group              = (known after apply)
+      + primary_network_interface_id = (known after apply)
+      + private_dns                  = (known after apply)
+      + private_ip                   = (known after apply)
+      + public_dns                   = (known after apply)
+      + public_ip                    = (known after apply)
+      + security_groups              = (known after apply)
+      + source_dest_check            = true
+      + subnet_id                    = (known after apply)
+      + tenancy                      = (known after apply)
+      + volume_tags                  = (known after apply)
+      + vpc_security_group_ids       = (known after apply)
+
+      + ebs_block_device {
+          + delete_on_termination = (known after apply)
+          + device_name           = (known after apply)
+          + encrypted             = (known after apply)
+          + iops                  = (known after apply)
+          + kms_key_id            = (known after apply)
+          + snapshot_id           = (known after apply)
+          + volume_id             = (known after apply)
+          + volume_size           = (known after apply)
+          + volume_type           = (known after apply)
+        }
+
+      + ephemeral_block_device {
+          + device_name  = (known after apply)
+          + no_device    = (known after apply)
+          + virtual_name = (known after apply)
+        }
+
+      + network_interface {
+          + delete_on_termination = (known after apply)
+          + device_index          = (known after apply)
+          + network_interface_id  = (known after apply)
+        }
+
+      + root_block_device {
+          + delete_on_termination = (known after apply)
+          + encrypted             = (known after apply)
+          + iops                  = (known after apply)
+          + kms_key_id            = (known after apply)
+          + volume_id             = (known after apply)
+          + volume_size           = (known after apply)
+          + volume_type           = (known after apply)
+        }
+    }
+
+  # aws_instance.launcher will be created
+  + resource "aws_instance" "launcher" {
+      + ami                          = "ami-02df9ea15c1778c9c"
+      + arn                          = (known after apply)
+      + associate_public_ip_address  = (known after apply)
+      + availability_zone            = (known after apply)
+      + cpu_core_count               = (known after apply)
+      + cpu_threads_per_core         = (known after apply)
+      + get_password_data            = false
+      + host_id                      = (known after apply)
+      + id                           = (known after apply)
+      + instance_state               = (known after apply)
+      + instance_type                = "t2.micro"
+      + ipv6_address_count           = (known after apply)
+      + ipv6_addresses               = (known after apply)
+      + key_name                     = (known after apply)
+      + network_interface_id         = (known after apply)
+      + password_data                = (known after apply)
+      + placement_group              = (known after apply)
+      + primary_network_interface_id = (known after apply)
+      + private_dns                  = (known after apply)
+      + private_ip                   = (known after apply)
+      + public_dns                   = (known after apply)
+      + public_ip                    = (known after apply)
+      + security_groups              = (known after apply)
+      + source_dest_check            = true
+      + subnet_id                    = (known after apply)
+      + tenancy                      = (known after apply)
+      + volume_tags                  = (known after apply)
+      + vpc_security_group_ids       = (known after apply)
+
+      + ebs_block_device {
+          + delete_on_termination = (known after apply)
+          + device_name           = (known after apply)
+          + encrypted             = (known after apply)
+          + iops                  = (known after apply)
+          + kms_key_id            = (known after apply)
+          + snapshot_id           = (known after apply)
+          + volume_id             = (known after apply)
+          + volume_size           = (known after apply)
+          + volume_type           = (known after apply)
+        }
+
+      + ephemeral_block_device {
+          + device_name  = (known after apply)
+          + no_device    = (known after apply)
+          + virtual_name = (known after apply)
+        }
+
+      + network_interface {
+          + delete_on_termination = (known after apply)
+          + device_index          = (known after apply)
+          + network_interface_id  = (known after apply)
+        }
+
+      + root_block_device {
+          + delete_on_termination = (known after apply)
+          + encrypted             = (known after apply)
+          + iops                  = (known after apply)
+          + kms_key_id            = (known after apply)
+          + volume_id             = (known after apply)
+          + volume_size           = (known after apply)
+          + volume_type           = (known after apply)
+        }
+    }
+
+  # aws_internet_gateway.igw will be created
+  + resource "aws_internet_gateway" "igw" {
+      + id       = (known after apply)
+      + owner_id = (known after apply)
+      + tags     = {
+          + "Name" = "main"
+        }
+      + vpc_id   = (known after apply)
+    }
+
+  # aws_key_pair.aws-key will be created
+  + resource "aws_key_pair" "aws-key" {
+      + fingerprint = (known after apply)
+      + id          = (known after apply)
+      + key_name    = "aws-key"
+      + public_key  = "-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEAkAVRyWsfPdwPZkW4bxHKh6AfcNj+5VgyvRnZf4MonDe6MKSK3KDHQqwcBc6d\nNv12EzReU2/9h+krOI5tZyH7D+QyD1e8TYbY17lROMxnI0gw772ZQIAKVh5nL3+OhE2pt8d+CATy\nNNg3g/cggQN420LRfN4U8cy3z0aE93YztWTyShFFCkpTpqAFGII6ydsBicfFrrjDvpp+yHYTNjXU\nN/3e2vudkQ03O5dv/1Q4NgVBTNrhB71UiibFziwXVjXGpKmrPEeRZZnaqxg1fKTpkS1UcX5ra6p2\nFAG6oQA4nSXOV+m9g12+auYfdWKl73t0Z7BHLqzDiM1AbuKf5tkJqwIDAQABAoIBADEh/3Ltnqzl\n5EMJyg/qS+PVFqTTArKPUk/8/5xmzHXu9RAfMlhuaUwvlyfMAwp9kcifdwaUEDRLsbkLrfsfNp2H\nRiTB07XHKTb/O9xar1z0Be3kCuJcTCpxGNa1d5NfQ2U1I6PsvAyXLulQZ8BbxOFYfEtTIGYVZyfJ\ncRdTNfTNxmQzyMCKY1PlS/0SUmfEUccOqAwzCGkw/N66wGgc9ZSlR6svSwJT/fvFvwJkL7Ly8oBr\nkJaIuUYpvck83McAZyN0cEGuo6Z3J2mMIS4KOYuqpYlkd8JXA4KNInQu/PH+afR8g8C5b5ZizXUl\nZV8/kt3kW++eTAeyw0fHiCOluGECgYEAxQiS2R/NyU7Z9aSEwbNhC7uU6ahp691deKzX6M+pHV9p\ncU/rXkM5Oevk7ATVa95Ez89YAoCVS8xXfQyUu8ZWLdS/8p61mmBNQ2no7CFlGxr1EI8eTPTvB664\n2kJxx6w9jgkFA88JP76XocuyQC6Y/sH3uxoCNKGlbuyrZW84hgkCgYEAux9Blod/0Q4Y0pSYpmIV\njG0qgt1lZJNLG1EMTVA02aLBN4RAShgjinJ8UzMi7AvgWXPS3t7NiQR9maanQAmkfX52VLlWdIvZ\n0Skw0AHJEwagIEwPLUs2kRJDtmDgLnlI2CX3M/oGOAFmGkbvI0RjkaMqOaQEoNVx19iET50MHxMC\ngYEAkF9g4rG4IxqhAKolEJ20rVksmy1pN4fDlsnnhtKqkzg3Vez+hNpzEyrzWbGNBHYgK7k9PtAj\nFSBMtvdCAHkq6ngqkceTP+PymUQAhQ1PPVY6XYDQ7gjHIPT4xAzNvEZL8EhRoWHR4CBykP5lxTuf\npYRRVoqPNSuAwc+vIysk2qkCgYAIkkP02zwVnWmxq7DaXj/ScOWznOSaGM0l8S55FCV3mqbzHhG7\n0yM9okTjosIEwf6C2nVcVCRiFFyUfzfGDSsFvJc7BkpZiFZv6E0eGhbV0kXfdNx1HK7hMk77ubBL\nMK8Ph52tOdSzGA1PQtSNbwKIl0rF3SeBHoXad0aIRw9ZFQKBgEYQdsoM/lrZ6LzfsR1EWruWdiA2\nuRvEqDVJr6YZKvoebXWvlZaW3hImMmul3AfB31mUn63fZEf5MnOTa6vEpvNq+qgUIKQaqfBgOy/O\nsFM/MHm7Lpdor+vusNiH9YVn+GuYWuBaALyLWNP1ByGw61NmxwkO+GUqeYBkmPbWWh9w\n-----END RSA PRIVATE KEY-----"
+    }
+
+  # aws_key_pair.aws-launcher-key will be created
+  + resource "aws_key_pair" "aws-launcher-key" {
+      + fingerprint = (known after apply)
+      + id          = (known after apply)
+      + key_name    = "aws-launcher-key"
+      + public_key  = "-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEAkHWiWzxg4gTZRpoPaysJJeEiu/HzC84N9Sa4tcQDz3M9xumU9yHznm7nxiyk\np6ew5kaDzoKSGH59M0ZMyquC3qnjfcRyfRqLgNeFzqe1s6MtX0EwpyS9+eFQ3pfWEowzDWhQyHF7\nRQPWhjAloR29OzWHwrvDSx4LYVA5xkkyR8SgyFVMmy6iEndCMhNsvSjCpzziDbAsJqrhCjc7WWJ/\nQPOWDPNfhdaG88pPRBGJdB+1PHl8cxBzO65OTKIOtxw4NDdK/xob+pu5Dl+vWd9jHpYGPx31/5IM\nZ+G/MvRNpBoy1aKlJyOInL8H4ahJDMbb4E3anIYWSRQN8RZEIjD5CQIDAQABAoIBADDbaCa9O/MV\nOrrzHeXb70MdapbwFIhYj0Xra6sl+TfvPOSKWXRfyjo6Pi87KBD/2Qd4r9lnNawNE6EE1LHy4dcW\n1DbT+viuwqG3wqyK8hwoQw8lSCQvfAUIHEa8SY2KVzXgovm3z74ety45GHDuUvK0fw7wW/OK3MRz\n0qZqWRQGPVfREYZ3dP5bxpcF5+yTjozNeMAGRfNoUblSkevSaDnvVkKBDD1YIGYhAX260r2OseS6\n0EYJPkluuiMzLCKn9vUU/xjyXa5QKcIN0fiwrUvTtnIECltBYKeNGRuJz/VMs26bwRzK/CngKaM6\nRaGBPCmRhYPQCND3Mbc3jJy/caUCgYEAwpbJg3SeA9ic4TG5ieWsh6fhC8qtmVWfWrtL/tIhX8Up\nTBkEbSZFr9hhqxzMKrOkHfdBBBCJU0oh60EMydNohaWGTQmJ7dQvOJb584ip8DnY4WASGMZJqYzw\nF/pnykEmcygQfDpjG6byXErYFeECtZo+wxd5S71M9gBVsKaZancCgYEAvgzKPiemmnxqt3QYzc3Y\n5H9RbJxNAwmczqvp/HsCA7+pWMXkf0mDWmbNAFW+VjBq9zKYIArqxa+iRF6269HhKWdXiYbmWHvN\nIz71bHbwqKDuIoeh3i3RItjv6cNduyW7HKZcm2BdCmVycwaI83/0LVseJtqapj7DkB9OYsM2GH8C\ngYBZWb3MU+ce4v8eVKPakxDG9apbrMRL7UoP8oLxznEutazB2Zbzu6gyF4y5cq65SOWqMNe00xcL\nnLW4fZUus5mCDMB/bUrdXxoTxRee4PkParCQxHlq0NoQNbwldoDkGUhbhmETegf6MY2GHYPdgAWr\nd9kr4gJ7acAGEZ9HTyiQ/wKBgQCkgH+ic0HDYMQijUxW/8Gobwf0wgnrAiwHvEipsXOZ+RFFdO2G\nvAQFgQwbKRy6j+hWliWVPr3eZVtIYM9mqeGCrB/aO7kwh+CVjI501zMSU1Is80fJ/9CRoENyDRgZ\nwNwIPXvVRgDi2dLJ+7MZSfz6MW+U5A2Orq8qFd8Mn7o4UwKBgH91jXKID82hVsnzORHwYYfjqqlE\nmO0WrJhZEp0Qb2ktueJ7lhO+OuOXWRPIW0n7v8pPuTpGqIpciBqbolLqT6E5Z7hySP3E+WljW40k\nFjthCMwDHkHVnqHl9qTXT1GwQ7Q3M+YY0vu0+VFitgjQZUhDE4cajrXqTymckAs0IXKw\n-----END RSA PRIVATE KEY-----"
+    }
+
+  # aws_nat_gateway.nat_gw will be created
+  + resource "aws_nat_gateway" "nat_gw" {
+      + allocation_id        = (known after apply)
+      + id                   = (known after apply)
+      + network_interface_id = (known after apply)
+      + private_ip           = (known after apply)
+      + public_ip            = (known after apply)
+      + subnet_id            = (known after apply)
+    }
+
+  # aws_route_table.private_route will be created
+  + resource "aws_route_table" "private_route" {
+      + id               = (known after apply)
+      + owner_id         = (known after apply)
+      + propagating_vgws = (known after apply)
+      + route            = (known after apply)
+      + vpc_id           = (known after apply)
+    }
+
+  # aws_route_table.public_route will be created
+  + resource "aws_route_table" "public_route" {
+      + id               = (known after apply)
+      + owner_id         = (known after apply)
+      + propagating_vgws = (known after apply)
+      + route            = (known after apply)
+      + vpc_id           = (known after apply)
+    }
+
+  # aws_security_group.general_rule will be created
+  + resource "aws_security_group" "general_rule" {
+      + arn                    = (known after apply)
+      + description            = "Managed by Terraform"
+      + egress                 = (known after apply)
+      + id                     = (known after apply)
+      + ingress                = (known after apply)
+      + name                   = (known after apply)
+      + owner_id               = (known after apply)
+      + revoke_rules_on_delete = false
+      + vpc_id                 = (known after apply)
+    }
+
+  # aws_security_group.kubernetes_rule will be created
+  + resource "aws_security_group" "kubernetes_rule" {
+      + arn                    = (known after apply)
+      + description            = "Managed by Terraform"
+      + egress                 = (known after apply)
+      + id                     = (known after apply)
+      + ingress                = (known after apply)
+      + name                   = (known after apply)
+      + owner_id               = (known after apply)
+      + revoke_rules_on_delete = false
+      + vpc_id                 = (known after apply)
+    }
+
+  # aws_subnet.private will be created
+  + resource "aws_subnet" "private" {
+      + arn                             = (known after apply)
+      + assign_ipv6_address_on_creation = false
+      + availability_zone               = (known after apply)
+      + availability_zone_id            = (known after apply)
+      + cidr_block                      = "192.168.8.0/24"
+      + id                              = (known after apply)
+      + ipv6_cidr_block                 = (known after apply)
+      + ipv6_cidr_block_association_id  = (known after apply)
+      + map_public_ip_on_launch         = false
+      + owner_id                        = (known after apply)
+      + vpc_id                          = (known after apply)
+    }
+
+  # aws_subnet.public will be created
+  + resource "aws_subnet" "public" {
+      + arn                             = (known after apply)
+      + assign_ipv6_address_on_creation = false
+      + availability_zone               = (known after apply)
+      + availability_zone_id            = (known after apply)
+      + cidr_block                      = "192.168.0.0/24"
+      + id                              = (known after apply)
+      + ipv6_cidr_block                 = (known after apply)
+      + ipv6_cidr_block_association_id  = (known after apply)
+      + map_public_ip_on_launch         = false
+      + owner_id                        = (known after apply)
+      + vpc_id                          = (known after apply)
+    }
+
+  # aws_vpc.main will be created
+  + resource "aws_vpc" "main" {
+      + arn                              = (known after apply)
+      + assign_generated_ipv6_cidr_block = false
+      + cidr_block                       = "192.168.0.0/16"
+      + default_network_acl_id           = (known after apply)
+      + default_route_table_id           = (known after apply)
+      + default_security_group_id        = (known after apply)
+      + dhcp_options_id                  = (known after apply)
+      + enable_classiclink               = (known after apply)
+      + enable_classiclink_dns_support   = (known after apply)
+      + enable_dns_hostnames             = (known after apply)
+      + enable_dns_support               = true
+      + id                               = (known after apply)
+      + instance_tenancy                 = "default"
+      + ipv6_association_id              = (known after apply)
+      + ipv6_cidr_block                  = (known after apply)
+      + main_route_table_id              = (known after apply)
+      + owner_id                         = (known after apply)
+    }
+
+Plan: 16 to add, 0 to change, 0 to destroy.
+
+Warning: Value for undeclared variable
+
+  on terraform.tfvars line 6:
+   6: domain          = "disasterproject.com"
+
+The root module does not declare a variable named "domain". To use this value,
+add a "variable" block to the configuration.
+
+Using a variables file to set an undeclared variable is deprecated and will
+become an error in a future release. If you wish to provide certain "global"
+settings to all configurations in your organization, use TF_VAR_...
+environment variables to set these instead.
+
+
+------------------------------------------------------------------------
+
+Note: You didn't specify an "-out" parameter to save this plan, so Terraform
+can't guarantee that exactly these actions will be performed if
+"terraform apply" is subsequently run.
+

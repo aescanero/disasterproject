@@ -1,0 +1,106 @@
+---
+#CREATE
+- name: Create Network
+  when: state == "present"
+  block:
+  - include: ec2_vpc_net.yml
+    vars:
+      name: 'VPC'
+      cidr_block: '{{ network.split(".")[0] }}.{{ network.split(".")[1] }}.0.0/16'
+  - include: ec2_vpc_subnet.yml
+    vars:
+      name: 'Subnet'
+      cidr: '{{ network }}.0/24'
+      map_public: no
+  - include: ec2_group.yml
+    vars:
+      name: 'General Rule'
+      rules:
+        - proto: tcp
+          ports:
+          - 80
+          - 22
+          cidr_ip: 0.0.0.0/0
+  - set_fact:
+      default_security_group_id: "{{ sg_id }}"
+  - include: ec2_group.yml
+    vars:
+      name: 'Kubernetes Rule'
+      rules:
+        - proto: tcp
+          ports:
+          - 6443
+          - 2379
+          - 2380
+          - 10250
+          - 10251
+          - 10252
+          - 10255
+          - 30000-32767
+          cidr_ip: 0.0.0.0/0
+  - set_fact:
+      kubernetes_security_group_id: "{{ sg_id }}"
+- name: Create Bastion Network
+  when: state == "present"
+  block:
+  - include: ec2_vpc_igw.yml
+    vars:
+     name: 'IGW'
+  - include: ec2_vpc_subnet.yml
+    vars:
+      name: 'Bastion Subnet'
+      cidr: '{{ network.split(".")[0] }}.{{ network.split(".")[1] }}.0.0/24'
+      map_public: yes
+  - include: ec2_vpc_route_table.yml
+    vars:
+      name: 'IGW Route'
+      subnet_name: 'Bastion Subnet'
+      gateway_id: '{{ igw_id }}'
+  - include: ec2_vpc_nat_gateway.yml
+    vars:
+      name: 'NAT'
+      subnet_name: 'Bastion Subnet'
+  - include: ec2_vpc_route_table.yml
+    vars:
+      name: 'NAT Route'
+      subnet_name: 'Subnet'
+      gateway_id: '{{ nat_id }}'
+
+#DESTROY
+- name: Destroy Bastion Network
+  when: state == "absent"
+  block:
+  - include: ec2_vpc_route_table.yml
+    vars:
+      name: 'IGW Route'
+  - include: ec2_vpc_subnet.yml
+    vars:
+      name: 'Bastion Subnet'
+      cidr: '{{ network.split(".")[0] }}.{{ network.split(".")[1] }}.0.0/24'
+      map_public: 'yes'
+- name: Destroy Network
+  when: state == "absent"
+  block:
+  - include: ec2_group.yml
+    vars:
+      name: 'General Rule'
+  - include: ec2_vpc_route_table.yml
+    vars:
+      name: 'NAT Route'
+  - include: ec2_vpc_nat_gateway.yml
+    vars:
+      subnet_name: 'Bastion Subnet'
+  - include: ec2_vpc_subnet.yml
+    vars:
+      name: 'Subnet'
+      cidr: '{{ network }}.0/24'
+      map_public: no
+  - include: ec2_vpc_igw.yml
+    vars:
+      name: 'IGW'
+  - include: ec2_vpc_net.yml
+    vars:
+      name: 'VPC'
+      cidr_block: '{{ network.split(".")[0] }}.{{ network.split(".")[1] }}.0.0/16'
+
+

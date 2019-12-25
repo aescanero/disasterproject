@@ -1,0 +1,40 @@
+---
+- ec2_instance_info:
+    filters:
+      "tag:Name": "{{ ec2_name }}.{{ domain }}"
+      "tag:Domain": "{{ domain }}"
+  register: 'ec2_info'
+
+- set_fact:
+    subnet_id: "{{ lookup('vars',real_subnet_name, default=omit) }}"
+  when: subnet_name is defined
+  vars:
+    real_subnet_name: '{{ [dn,subnet_name] | join("_") | regex_replace ("\W","_") }}_subnet_id'
+
+- name: Create EC2 server
+  ec2:
+    instance_type: "{{ ec2_instance_type }}"
+    image: "{{ ec2_ami_id }}"
+    wait: yes
+    region: "{{ region }}"
+    group_id: "{{ ec2_security_group_id }}"
+    vpc_subnet_id: "{{ subnet_id }}"
+    key_name: "{{ ec2_keypair_key_name  }}"
+    instance_tags:
+      Name: "{{ ec2_name }}.{{ domain }}"
+      Domain: "{{ domain }}"
+    state: present
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    private_ip: "{{ ec2_ip }}"
+    assign_public_ip: "yes"
+    user_data: "{{ ec2_userdata }}"
+  when: ec2_info.instances | length == 0
+  register: 'ec2_instance_info'
+
+- ec2_instance_info:
+    filters:
+      "tag:Name": "{{ ec2_name }}.{{ domain }}"
+      "tag:Domain": "{{ domain }}"
+  register: 'ec2_info'
+...

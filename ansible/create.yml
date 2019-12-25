@@ -40,4 +40,73 @@
       ansible_host: "{{ vm_ip }}"
     when: container_engine is defined
 
+
+- name: Main Task to Create AWS Instances
+  hosts: aws
+  order: sorted
+  any_errors_fatal: true
+  become_user: root
+  become: yes
+  user: root
+  gather_facts: false
+#  vars_prompt:
+#  - name: aws_access_key
+#    prompt: "What is your aws access key?"
+#  - name: aws_secret_key
+#    prompt: "What is your aws secret key?"
+  vars_files:
+  - vars/conn
+  - vars/virt
+
+  tasks:
+  - name: Checks
+    import_role:
+        name: aws
+        tasks_from: prepare.yml
+    delegate_to: localhost
+    connection: local
+    run_once: true
+
+  - name: Networks
+    import_role:
+        name: aws
+        tasks_from: network.yml
+    vars:
+      state: "present"
+    delegate_to: localhost
+    connection: local
+    run_once: true
+
+  - name: Compute
+    import_role:
+        name: aws
+        tasks_from: ec2_multi.yml
+    vars:
+      state: "present"
+      subnet_name: "Subnet"
+    connection: local
+    run_once: true
+    delegate_to: localhost
+
+  - name: Include Container Engine
+    include_role:
+      name: '{{container_engine}}'
+      tasks_from: main.yml
+    vars:
+      state: "present"
+    run_once: true
+    when: container_engine is defined
+
+#  - name: Configure virtual machine
+#    import_role:
+#      name: os
+#      tasks_from: setup.yml
+
+#  - name: Include Container Engine
+#    include_role:
+#      name: "{{container_engine}}"
+#      tasks_from: main.yml
+#    vars:
+#      ansible_host: "{{ vm_ip }}"
+#    when: container_engine is defined
 ...

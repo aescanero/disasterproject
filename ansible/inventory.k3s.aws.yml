@@ -1,23 +1,22 @@
 all:
   children:
-    vms:
+    aws:
       hosts:
-        kubernetes-master:
+        k3s-master:
+          memory: 3072
+          vcpus: 2
+          vm_ip: "192.168.8.10"
+          linux_flavor: "debian"
+          container_engine: "k3s"
+        k3s-node:
           memory: 2048
           vcpus: 2
-          vm_ip: "192.168.8.2"
+          vm_ip: "192.168.8.11"
           linux_flavor: "debian"
-          container_engine: "kubernetes"
-        kubernetes-node:
-          memory: 1024
-          vcpus: 1
-          vm_ip: "192.168.8.3"
-          linux_flavor: "debian"
-          container_engine: "kubernetes"
+          container_engine: "k3s"
       vars:
         domain: disasterproject.com
         network: "192.168.8"
-        network_controller: weave
         storage: nfs-client
         ingress:
         - traefik
@@ -27,9 +26,7 @@ all:
           publish:
           - route
           - external
-        - name: weave-scope
-          publish:
-          - route
-
+        - name: octant
+        - name: kubernator
 
 

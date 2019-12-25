@@ -24,6 +24,54 @@
     connection: local
     delegate_to: localhost
 
+- name: Main Task to Destroy AWS resources
+  hosts: aws
+  any_errors_fatal: true
+  become_user: root
+  become: yes
+  user: root
+  gather_facts: false
+  vars_files:
+  - vars/conn
+  - vars/virt
+  tasks:
+  - name: Checks
+    import_role:
+        name: aws
+        tasks_from: prepare.yml
+    delegate_to: localhost
+    connection: local
+    run_once: true
+
+#  - name: Include Container Engine
+#    import_role:
+#      name: '{{container_engine}}'
+#      tasks_from: main.yml
+#    run_once: true
+#    when: container_engine is defined
+
+  - name: Compute
+    import_role:
+        name: aws
+        tasks_from: ec2_multi.yml
+    vars:
+      state: "absent"
+    connection: local
+    run_once: true
+    delegate_to: localhost
+
+  - name: Networks
+    import_role:
+        name: aws
+        tasks_from: network.yml
+    vars:
+      state: "absent"
+    delegate_to: localhost
+    connection: local
+    run_once: true
+
+ 
+
 
 
 

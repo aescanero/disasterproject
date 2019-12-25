@@ -1,0 +1,5 @@
+---
+#Ubuntu Server 18.04 LTS (HVM), SSD Volume Type
+ami_id: 'ami-02df9ea15c1778c9c'
+instance_type: 't2.small'
+#instance_type: 't2.medium'

@@ -1,0 +1,59 @@
+---
+- name: Obtain host information
+  setup:
+  vars:
+    warn: no
+  run_once: true
+
+- name: Update repositories cache and install boto3
+  run_once: true
+  apt:
+    name: "{{ packages }}"
+    update_cache: yes
+    force_apt_get: True
+  vars:
+    packages:
+    - python-boto
+    - python-boto3
+  when: ansible_os_family == "Debian"
+
+- name: Update repositories cache and install boto3
+  run_once: true
+  yum:
+    name: "{{ packages }}"
+    state: latest
+  vars:
+    packages:
+    - python-boto
+    - python-boto3
+  when: ansible_os_family == "Redhat"
+
+- fail:
+    msg: The system may not be provisioned because vpc_cidr is not defined.
+  when: vpc_cidr is not defined and network is not defined
+
+- fail:
+    msg: The system may not be provisioned because vpc_name is not defined.
+  when: vpc_name is not defined and domain is not defined
+
+- fail:
+    msg: The system may not be provisioned because region is not defined.
+  when: region is not defined
+
+- fail:
+    msg: The system may not be provisioned because aws_access_key is not defined.
+  when: aws_access_key is not defined
+
+- fail:
+    msg: The system may not be provisioned because aws_secret_key is not defined.
+  when: aws_secret_key is not defined
+
+- fail:
+    msg: Network '{{ network.split(".")[0] }}.{{ network.split(".")[1] }}.0.0/24' is reserved 
+  when: net == "0"
+  vars:
+    net: '{{ network.split(".")[2] }}'
+
+- set_fact:
+    dn: "{{ domain | replace('.', '') | truncate(50) | upper}}"
+

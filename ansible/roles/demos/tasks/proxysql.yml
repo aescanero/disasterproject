@@ -1,0 +1,177 @@
+---
+- name: Create namespace
+  shell: kubectl create namespace proxysql --dry-run -o yaml | kubectl apply -f -
+
+- name: Define proxysql
+  copy:
+    dest: "{{ ansible_env.HOME }}/proxysql.yml"
+    content: |
+      ---
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: proxysql
+        namespace: proxysql
+      spec:
+        ports:
+        - name: proxysql-mysql
+          port: 6033
+          protocol: TCP
+          targetPort: 6033
+        selector:
+          app: proxysql
+        type: LoadBalancer
+      ---
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        labels:
+          app: proxysql
+        name: proxysql
+      spec:
+        replicas: 2
+        selector:
+          matchLabels:
+            app: proxysql
+        template:
+          metadata:
+            labels:
+              app: proxysql
+          spec:
+            containers:
+            - image: proxysql/proxysql:latest
+              name: proxysql
+              ports:
+              - containerPort: 6033
+                name: proxysql-mysql
+              - containerPort: 6032
+                name: proxysql-admin
+
+- name: Define conf
+  copy:
+    dest: "{{ ansible_env.HOME }}/proxysql.conf"
+    content: |
+      datadir="/var/lib/proxysql"
+      admin_variables=
+      {
+        admin_credentials="proxysql-admin:adminpassw0rd"
+        mysql_ifaces="0.0.0.0:6032"
+        refresh_interval=2000
+      }
+      mysql_variables=
+      {
+        threads=4
+        max_connections=2048
+        default_query_delay=0
+        default_query_timeout=36000000
+        have_compress=true
+        poll_timeout=2000
+        interfaces="0.0.0.0:6033;/tmp/proxysql.sock"
+        default_schema="information_schema"
+        stacksize=1048576
+        server_version="5.1.30"
+        connect_timeout_server=10000
+        monitor_history=60000
+        monitor_connect_interval=200000
+        monitor_ping_interval=200000
+        ping_interval_server_msec=10000
+        ping_timeout_server=200
+        commands_stats=true
+        sessions_sort=true
+        monitor_username="proxysql"
+        monitor_password="proxysqlpassw0rd"
+      }
+      mysql_replication_hostgroups =
+      (
+        { writer_hostgroup=10, reader_hostgroup=20, comment="MySQL Replication 5.7" }
+      )
+      mysql_servers =
+      (
+        { address="192.168.55.171" , port=3306 , hostgroup=10, max_connections=100 },
+        { address="192.168.55.172" , port=3306 , hostgroup=10, max_connections=100 },
+        { address="192.168.55.171" , port=3306 , hostgroup=20, max_connections=100 },
+        { address="192.168.55.172" , port=3306 , hostgroup=20, max_connections=100 }
+      )
+      mysql_users =
+      (
+        { username = "wordpress" , password = "passw0rd" , default_hostgroup = 10 , active = 1 }
+      )
+      mysql_query_rules =
+      (
+      {
+        rule_id=100
+        active=1
+        match_pattern="^SELECT .* FOR UPDATE"
+        destination_hostgroup=10
+        apply=1
+      },
+      {
+        rule_id=200
+        active=1
+        match_pattern="^SELECT .*"
+        destination_hostgroup=20
+        apply=1
+      },
+      {
+        rule_id=300
+        active=1
+        match_pattern=".*"
+        destination_hostgroup=10
+        apply=1
+      }
+      )
+
+
+- name: Configure Service
+  shell: "kubectl apply -n proxysql -f {{ ansible_env.HOME }}/proxysql.yml"
+
+- name: Create ConfigMap
+  shell: "kubectl create -n proxysql configmap proxysql-configmap --from-file={{ ansible_env.HOME }}/proxysql.conf"
+
+- name: Wait to raise proxysql
+  shell: kubectl get pods -n proxysql |grep proxysql|grep Running
+  register: test
+  retries: 25
+  delay: 10
+  until: test.stdout != ""
+
+- name: Modify external LoadBalacer
+  when: addons_item.publish is defined and "external" in addons_item.publish
+  include_role:
+    name: services
+    tasks_from: external
+  vars:
+    service: proxysql
+    externalport: 80
+    internalport: 4654
+    protocol: "TCP"
+    namespace: "proxysql"
+    label: "k8s-app"
+
+- name: Modify ingress route
+  when: addons_item.publish is defined and "route" in addons_item.publish
+  include_role:
+    name: ingress
+    tasks_from: ingress_add_route
+  vars:
+    service: proxysql
+    route: "/"
+    internalport: 80
+    namespace: "proxysql"
+
+- name: HOW TO ACCESS TO DASHBOARD
+  when: addons_item.publish is defined and "external" in addons_item.publish
+  debug:
+    msg: |
+      Things left to do:
+        - Access to https://{{proxysql_ip.stdout}}
+        - Use the next token to access dashboard: {{proxysql_token.stdout}}
+
+- name: HOW TO ACCESS TO DASHBOARD
+  when: addons_item.publish is defined and "route" in addons_item.publish
+  debug:
+    msg: |
+      Things left to do:
+        - Access to https://proxysql.{{ domain }}
+        - Use the next token to access dashboard: {{proxysql_token.stdout}}
+...

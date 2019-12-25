@@ -1,0 +1,248 @@
+---
+- block:
+  - name: Remove swap info in /etc/fstab
+    lineinfile:
+      path: /etc/fstab
+      state: absent
+      regexp: 'swap'
+  - name: disable and stop firewalld service
+    systemd:
+      name: firewalld
+      enabled: no
+      masked: no
+      state: stopped
+  - name: Disable SWAP
+    shell: swapoff -a
+  when: ansible_os_family == "RedHat" and ansible_distribution_major_version == "8"
+
+- name: Add kernel modules
+  modprobe:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - overlay
+    - br_netfilter
+    - ip_vs
+    - ip_vs_rr
+    - ip_vs_wrr
+    - ip_vs_sh
+    - ip_tables
+
+- sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    sysctl_set: yes
+    state: present
+
+- sysctl:
+    name: net.bridge.bridge-nf-call-iptables
+    value: "1"
+    sysctl_set: yes
+    state: present
+
+- block:
+  - name: Load modules at boot
+    copy:
+      dest: /etc/sysconfig/modules/kubernetes.modules
+      mode: "0755"
+      content: |
+        #!/bin/sh
+        modprobe ip_vs
+        modprobe ip_vs_rr
+        modprobe ip_vs_wrr
+        modprobe ip_vs_sh
+        modprobe ip_tables
+  - name: Update repositories cache and install kubernetes dependences
+    yum:
+      name: "{{ packages }}"
+      state: latest
+    vars:
+      packages:
+      - ebtables
+      - ethtool 
+      - curl
+      - socat
+      - libseccomp
+      - conntrack-tools
+      - ipvsadm
+      - iproute-tc
+  when: ansible_os_family == "RedHat"
+
+- name: Update repositories cache and install dirmngr and curl packages
+  apt:
+    name: "{{ packages }}"
+    update_cache: yes
+    force_apt_get: True
+  vars:
+    packages:
+    - ebtables
+    - ethtool 
+    - curl
+    - socat
+    - libseccomp2
+    - conntrack
+    - ipvsadm
+    - iproute2
+  when: ansible_os_family == "Debian"
+
+- name: Creates directory cni
+  file:
+    path: /opt/cni/bin
+    state: directory
+
+- name: Install last CNI version
+  when: network_controller is defined
+  shell: curl -LSs https://github.com/containernetworking/plugins/releases/download/v0.8.1/cni-plugins-linux-amd64-v0.8.1.tgz |tar --no-overwrite-dir -C /opt/cni/bin -xz
+  args:
+    warn: false
+
+- name: Check that the k3s binary exists
+  stat:
+    path: /usr/bin/k3s
+  register: k3s_stat_result
+
+- name: install k3s
+  when: k3s_stat_result.stat.exists == false
+  get_url:
+    url: https://github.com/rancher/k3s/releases/latest/download/k3s
+    dest: /usr/bin/k3s
+    mode: '0755'
+    username: root
+    group: root
+
+- name: obtiene el nombre del master
+  command: echo "{{ inventory_hostname }}"
+  register: master_name
+  run_once: true
+  when: master_name is not defined
+
+- when: master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  block:
+  - name: Create kubectl alias
+    copy:
+      dest: "/usr/bin/kubectl"
+      mode: '0755'
+      content: |
+        #!/bin/sh
+        /usr/bin/k3s kubectl "$@"
+  - name: Check that the k3s master service exists
+    stat:
+      path: /etc/systemd/system/k3smaster.service
+    register: k3s_master_service_stat
+  - name: install /etc/systemd/system/k3smaster.service on master
+    when: k3s_master_service_stat.stat.exists == false
+    copy:
+      dest: /etc/systemd/system/k3smaster.service
+      content: "{{ lookup('template', 'service.master.j2') }}"
+  - name: enable and start k3smaster service on master
+    systemd:
+      name: k3smaster
+      daemon_reload: yes
+      enabled: yes
+      masked: no
+      state: started
+  - name: Wait to raise k3s master
+    shell: kubectl get nodes |grep "{{ inventory_hostname }}"|grep Ready
+    register: test
+    retries: 25
+    delay: 10
+    until: test.stdout != ""
+  - name: Creates directory
+    when: k3s_stat_result.stat.exists == false
+    file:
+      path: "{{ ansible_env.HOME }}/.kube"
+      state: directory
+  - name: Configure config for kubectl
+    when: k3s_stat_result.stat.exists == false
+    shell: cp -i /etc/rancher/k3s/k3s.yaml "{{ ansible_env.HOME }}"/.kube/config
+  - name: Install network_controller
+    when: network_controller != 'flannel'
+    include_role:
+      name: network
+      tasks_from: "{{ network_controller }}"
+  - name: Define a default external pool for Kubernetes
+    when: k3s_stat_result.stat.exists == false
+    copy:
+      dest: "{{ ansible_env.HOME }}/pool.yml"
+      content: |
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          namespace: metallb-system
+          name: config
+        data:
+          config: |
+            address-pools:
+            - name: my-ip-space
+              protocol: layer2
+              addresses:
+              - {{ network }}.240/28
+  - name: Create auxiliar system account for administration
+    when: k3s_stat_result.stat.exists == false
+    shell: "{{ item }}"
+    with_items:
+      - kubectl create serviceaccount -n kube-system helm-install-sa --dry-run -o yaml | kubectl apply -f -
+      - kubectl create clusterrolebinding helm-install-sa --clusterrole=cluster-admin --serviceaccount=kube-system:helm-install-sa --dry-run -o yaml | kubectl apply -f -
+  - name: Install MetalLB Load Balancer
+    when: k3s_stat_result.stat.exists == false
+    shell: "{{ item }}"
+    with_items:
+      - kubectl apply -f "https://raw.githubusercontent.com/danderson/metallb/master/manifests/metallb.yaml"
+      - "kubectl apply -f {{ ansible_env.HOME }}/pool.yml"
+  - name: Install default ingress
+    when: ingress is not defined
+    include_role:
+      name: ingress
+      tasks_from: main
+    vars:
+      ingress_item:
+        name: "traefik"
+  - name: Install ingress
+    when: ingress is defined
+    include_role:
+      name: ingress
+      tasks_from: main
+    with_items: "{{ ingress }}"
+    loop_control:
+      loop_var: ingress_item
+  - name: Load k3s token into variable
+    slurp:
+      src: "/var/lib/rancher/k3s/server/node-token"
+    register: token
+
+- when: master_name is defined and master_name.stdout != inventory_hostname
+  block:
+  - name: Check that the k3s node service exists
+    stat:
+      path: /etc/systemd/system/k3s.service
+    register: k3s_node_service_stat
+  - name: install /etc/systemd/system/k3s.service on nodes
+    when: k3s_node_service_stat.stat.exists == false
+    copy:
+      dest: /etc/systemd/system/k3s.service
+      content: "{{ lookup('template', 'service.agent.j2') }}"
+  - name: enable and start k3s service on nodes
+    systemd:
+      name: k3s
+      daemon_reload: yes
+      enabled: yes
+      masked: no
+      state: started
+
+- name: Wait to raise k3s nodes
+  run_once: true
+  pause:
+    seconds: 20
+
+- name: Install storage_controller
+  when: storage is defined and master_name is defined and master_name.stdout == inventory_hostname
+  run_once: true
+  include_role:
+    name: storage
+    tasks_from: "main"
+
+- include: addons.yml
+  run_once: true
+  when: addons is defined and master_name is defined and master_name.stdout == inventory_hostname
+...

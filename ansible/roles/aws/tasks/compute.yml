@@ -1,0 +1,23 @@
+---
+- name: Create EC2 server
+  ec2:
+    instance_type: "{{ instance_type }}"
+    image: "{{ ami_id }}"
+    wait: yes
+    region: "{{ region }}"
+    group_id: "{{ security_group.group_id }}"
+    vpc_subnet_id: "{{ subnet.subnet.id }}"
+    key_name: "{{ keypair.key.name  }}"
+    count_tag:
+      Name: "{{ item }}.{{ domain }}"
+    exact_count: 1
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    private_ip: "{{ hostvars[item].vm_ip }}"
+    assign_public_ip: yes
+  with_items: "{{ groups.aws }}"
+  register: 'ec2'
+
+- debug: var=ec2
+
+

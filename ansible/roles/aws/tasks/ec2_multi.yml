@@ -1,0 +1,75 @@
+---
+- include: keypair.yml
+  vars:
+    key_name: "groups.aws"
+
+- fail:
+    msg: "subnet_name or subnet_id must be defined"
+  when: subnet_name is not defined and subnet_id is not defined
+
+- set_fact:
+    subnet_id: "{{ lookup('vars',real_subnet_name, default=omit) }}"
+  when: subnet_name is defined
+  vars:
+    real_subnet_name: '{{ [dn,subnet_name] | join("_") | regex_replace ("\W","_") }}_subnet_id'
+
+- ec2_instance_info:
+    filters:
+      "tag:Name": "{{ item }}.{{ domain }}"
+      "tag:Domain": "{{ domain }}"
+  with_items: "{{ groups.aws }}"
+  register: 'ec2_info'
+
+- name: Create EC2 server
+  ec2:
+    instance_type: "{% if hostvars[item.item].instance_type is defined %}{{ hostvars[item.item].instance_type }}{% else %}{{ instance_type }}{% endif %}"
+    image: "{% if hostvars[item.item].ami_id is defined %}{{ hostvars[item.item].ami_id }}{% else %}{{ ami_id }}{% endif %}"
+    wait: yes
+    region: "{{ region }}"
+    group_id: 
+      - "{{ default_security_group_id }}"
+      - "{{ kubernetes_security_group_id }}"
+    vpc_subnet_id: "{{ subnet_id }}"
+    key_name: "{{ keypair.key.name  }}"
+    instance_tags:
+      Name: "{{ item.item }}.{{ domain }}"
+      Domain: "{{ domain }}"
+    state: "{{ state }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    private_ip: "{{ hostvars[item.item].vm_ip }}"
+    assign_public_ip: "{% if hostvars[item.item].assign_public_ip is defined and hostvars[item.item].assign_public_ip %}yes{% else %}no{% endif %}"
+    user_data: |
+      #!/bin/sh
+      sudo systemctl stop unattended-upgrades
+      sudo apt-get --purge -y remove unattended-upgrades
+  when: state == "present" and item.instances | length == 0
+  with_items: "{{ ec2_info.results }}"
+  register: 'ec2'
+
+- name: Destroy EC2 server
+  ec2:
+    instance_type: "{% if hostvars[item.item].instance_type is defined %}{{ hostvars[item.item].instance_type }}{% else %}{{ instance_type }}{% endif %}"
+    image: "{% if hostvars[item.item].ami_id is defined %}{{ hostvars[item.item].ami_id }}{% else %}{{ ami_id }}{% endif %}"
+    wait: yes
+    region: "{{ region }}"
+    key_name: "{{ keypair.key.name  }}"
+    instance_tags:
+      Name: "{{ item.item }}.{{ domain }}"
+      Domain: "{{ domain }}"
+    state: "{{ state }}"
+    instance_ids: '{{ item.instances[0].instance_id }}'
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+  when: item.instances |length > 0 and state == "absent"
+  with_items: "{{ ec2_info.results }}"
+  register: 'ec2'
+
+- ec2_instance_info:
+    filters:
+      "tag:Name": "{{ item }}.{{ domain }}"
+      "tag:Domain": "{{ domain }}"
+  with_items: "{{ groups.aws }}"
+  register: 'ec2_info'
+
+- local_action: copy content={{ ec2_info }} dest="./files/groups.aws.ec2"

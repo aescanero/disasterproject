@@ -1,0 +1,28 @@
+---
+- name: Check that metrics-server addon is installed
+  stat:
+    path: "{{ ansible_env.HOME }}/.metrics-server"
+  register: metrics_server_stat_result
+
+- name: install addon metrics-server
+  when: metrics_server_stat_result.stat.exists == false
+  include: "metrics-server.yml"
+
+- name: Mark addon as intalled
+  when: metrics_server_stat_result.stat.exists == false
+  copy:
+    dest: "{{ ansible_env.HOME }}/.metrics-server"
+    content: |
+      installed
+
+- name: Check that ktop is installed
+  stat:
+    path: /usr/local/sbin/ktop
+  register: ktop_stat_result
+
+- name: Install Ktop
+  when: ktop_stat_result.stat.exists == false
+  shell: curl -sLS https://github.com/ynqa/ktop/releases/download/v0.1.1/ktop_0.1.1_linux_amd64.tar.gz|tar --no-overwrite-dir -C /usr/local/sbin/. -xz
+  args:
+    warn: false
+...
