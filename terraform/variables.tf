@@ -1,4 +1,1 @@
-#variable "" {
-#  default = ""
-#}
-
+variable "domain" {}

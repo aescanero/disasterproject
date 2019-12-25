@@ -1,4 +1,3 @@
-variable "domain" {}
 variable "ami" {}
 
 resource "aws_instance" "kmaster" {
@@ -13,7 +12,7 @@ resource "aws_instance" "kmaster" {
   private_ip                  = "192.168.8.11"
   user_data                   = "${file("userdata.sh")}"
   tags = {
-    Domain = "${domain}"
+    Domain = "${var.domain}"
     Name   = "kmaster.disasterproject.com"
   }
 }
@@ -30,7 +29,7 @@ resource "aws_instance" "knode1" {
   private_ip                  = "192.168.8.12"
   user_data                   = "${file("userdata.sh")}"
   tags = {
-    Domain = "${domain}"
+    Domain = "${var.domain}"
     Name   = "knode1.disasterproject.com"
   }
 }
@@ -47,8 +46,8 @@ resource "aws_instance" "knode2" {
   private_ip                  = "192.168.8.13"
   user_data                   = "${file("userdata.sh")}"
   tags = {
-    Domain = "${domain}"
-    Name   = "knode2.${domain}"
+    Domain = "${var.domain}"
+    Name   = "knode2.${var.domain}"
   }
 }
 
@@ -64,7 +63,7 @@ resource "aws_instance" "launcher" {
   private_ip                  = "192.168.0.254"
   user_data                   = "${file("userdata.launch.sh")}"
   tags = {
-    Domain = "${domain}"
-    Name   = "launcher.${domain}"
+    Domain = "${var.domain}"
+    Name   = "launcher.${var.domain}"
   }
 }

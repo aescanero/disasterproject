@@ -1,4 +1,3 @@
-variable "domain" {}
 variable "public_network" {}
 variable "private_network" {}
 
