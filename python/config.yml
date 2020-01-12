@@ -1,0 +1,7 @@
+LOCK_WAIT_TIMEOUT: 5
+CHAT_ID: ""
+TOKEN: ''
+PIDFILE: '/var/run/monitor.pid'
+MONITOR_NAME: "Monitor"
+MONITOR_URL: "https://www.disasterproject.com"
+CMD: "sudo /usr/local/sbin/restart.sh"
