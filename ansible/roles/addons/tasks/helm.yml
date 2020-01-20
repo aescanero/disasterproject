@@ -6,7 +6,7 @@
 
 - name: Install Helm 3beta3
   when: helm_stat_result.stat.exists == false
-  shell: curl -sLS https://get.helm.sh/helm-v3.0.0-beta.3-linux-amd64.tar.gz|tar --no-overwrite-dir --strip=1 -C /usr/local/sbin/. -xz
+  shell: curl -sLS https://get.helm.sh/helm-v3.0.2-linux-amd64.tar.gz|tar --no-overwrite-dir --strip=1 -C /usr/local/sbin/. -xz
   args:
     warn: false
 

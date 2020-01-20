@@ -48,6 +48,6 @@
       timeout: 600
   - name: Obtain vm information
     setup:
-  - shell: "cd /opt/kubespray && ansible-playbook -b -u ubuntu -e cloud_provider=aws -i hosts.ini cluster.yml --private-key=key.pem --flush-cache"
+  - shell: "cd /opt/kubespray-master && ansible-playbook -b -u ubuntu -e cloud_provider=aws -i hosts.ini cluster.yml --private-key=key.pem --flush-cache"
 
 ...

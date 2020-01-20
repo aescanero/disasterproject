@@ -1,3 +1,4 @@
 ---
-- import_tasks: "launcher_{{ group_names[0] }}.yml"
+- debug: var=group
+- include_tasks: "launcher_{{ group }}.yml"
 ...

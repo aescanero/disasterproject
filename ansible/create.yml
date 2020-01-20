@@ -38,6 +38,7 @@
       tasks_from: main.yml
     vars:
       ansible_host: "{{ vm_ip }}"
+      group: "{{ group_names[0] }}"
     when: container_engine is defined
 
 
