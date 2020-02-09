@@ -17,7 +17,6 @@
       ssl:
         enabled: "true"
         mtls:
-          enabled: "true"
           optional: "true"
         generateTLS: "true"
       metrics:
